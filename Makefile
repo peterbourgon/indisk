@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -g -O3
+CFLAGS = -Wall -Werror -pedantic -g # -O3
 
 SRC = \
 	xmlparse.cc \

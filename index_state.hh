@@ -43,12 +43,12 @@ private:
 	uint32_t articleid(const std::string& s);
 
 	// Dump the term ID + a vector of article IDs to the current position
-	// in the passed output file stream, and returns that position as an
-	// offset.
-	uint32_t flush(
+	// in the passed output file stream, registers that offset in the
+	// tid_offsets map (via register_tid_offset, below).
+	void flush(
 			std::ofstream& ofs_index,
 			uint32_t tid,
-			const id_vector& aids) const;
+			id_vector& aids);
 	
 	// Register an offset (from flush(), above) with a term ID, to be later
 	// used while writing the index header.

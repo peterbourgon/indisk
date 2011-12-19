@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdexcept>
 #include "index_state.hh"
 
@@ -33,10 +34,10 @@ uint32_t index_state::articleid(const std::string& s)
 	}
 }
 
-uint32_t index_state::flush(
+void index_state::flush(
 		std::ofstream& ofs_index,
 		uint32_t tid,
-		const id_vector& aids) const
+		id_vector& aids)
 {
 	const uint32_t offset(ofs_index.tellp());
 	ofs_index << tid;
@@ -45,7 +46,8 @@ uint32_t index_state::flush(
 		ofs_index << *it;
 	}
 	ofs_index << '\n';
-	return offset;
+	register_tid_offset(tid, offset);
+	aids.clear();
 }
 
 void index_state::register_tid_offset(uint32_t tid, uint32_t offset)
@@ -68,14 +70,13 @@ void index_state::index(
 	if (finalized) {
 		throw std::runtime_error("can't index after finalize");
 	}
+	std::cout << "index: " << term << " -> " << article << std::endl;
 	const uint32_t tid(termid(term)), aid(articleid(article));
 	tid_aids_map::iterator tgt(inverted_index.find(tid));
 	if (tgt != inverted_index.end()) {
 		tgt->second.push_back(aid);
 		if (tgt->second.size() >= FLUSH_LIMIT) {
-			const uint32_t o(flush(ofs_index, tgt->first, tgt->second));
-			register_tid_offset(tid, o);
-			tgt->second.clear();
+			flush(ofs_index, tgt->first, tgt->second);
 		}
 	} else {
 		id_vector v;
@@ -87,10 +88,9 @@ void index_state::index(
 
 void index_state::finalize(std::ofstream& ofs_index)
 {
-	typedef tid_aids_map::const_iterator xit;
+	typedef tid_aids_map::iterator xit;
 	for (xit it(inverted_index.begin()); it != inverted_index.end(); ++it) {
-		const uint32_t o(flush(ofs_index, it->first, it->second));
-		register_tid_offset(tid, o);
+		flush(ofs_index, it->first, it->second);
 	}
 	finalized = true;
 }
@@ -129,6 +129,9 @@ void index_state::write_header(std::ofstream& ofs_header)
 		ofs_header << it->second << it->first << '|';
 		tocit tgt(tid_offsets.find(it->second));
 		if (tgt == tid_offsets.end()) {
+			std::cerr << "term " 
+					<< it->second << " " << it->first 
+					<< " not present" << std::endl;
 			throw std::runtime_error("invalid state in index_state");
 		}
 		const index_state::offset_vector& offsets(tgt->second);

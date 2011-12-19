@@ -12,24 +12,26 @@ bool index_article(
 		index_state& is,
 		std::ofstream& ofs_index)
 {
-	if (!s.read_until("<title>", parse_nil, NULL)) {
+	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
 	}
 	std::string title;
 	if (!s.read_until("<", parse_raw, &title)) {
 		return false;
 	}
-	if (!s.read_until("<contributor>", parse_nil, NULL)) {
+	std::cout << "parsed title: " << title << std::endl;
+	if (!s.read_until("<contributor>", NULL, NULL)) {
 		return false;
 	}
 	std::string contrib;
 	if (!s.read_until("</contributor>", parse_contrib, &contrib)) {
 		return false;
 	}
-	if (!s.read_until("<text", parse_nil, NULL)) {
+	std::cout << "parsed contributor: " << contrib << std::endl;
+	if (!s.read_until("<text", NULL, NULL)) {
 		return false;
 	}
-	if (!s.read_until(">", parse_nil, NULL)) {
+	if (!s.read_until(">", NULL, NULL)) {
 		return false;
 	}
 	parse_text_context ctx(title, is, ofs_index);

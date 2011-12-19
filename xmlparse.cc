@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <cassert>
+#include <iostream>
 #include "xmlparse.hh"
 
 stream::stream(const std::string& filename, size_t bufsz)
@@ -59,8 +60,9 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 
 	if (f) {
 		const uint32_t end_offset(ftell(m_f));
-		const size_t len(end_offset - start_offset);
+		const size_t len(end_offset - start_offset - tmax);
 		f(m_f, start_offset, len, arg);
+		fseek(m_f, tmax, SEEK_CUR);
 		assert(ftell(m_f) == end_offset);
 	}
 	
@@ -77,11 +79,6 @@ char stream::peek()
 	return c;
 }
 
-void parse_nil(FILE *f, uint32_t offset, size_t len, void *arg)
-{
-	//
-}
-
 void parse_raw(FILE *f, uint32_t offset, size_t len, void *arg)
 {
 	std::string *s(reinterpret_cast<std::string *>(arg));
@@ -91,20 +88,36 @@ void parse_raw(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (fseek(f, offset, SEEK_SET) != 0) {
 		throw std::runtime_error("parse_raw failed during fseek");
 	}
-	s->reserve(len);
-	if (fread(const_cast<char *>(s->data()), 1, len, f) != len) {
+	char *buf(static_cast<char *>(malloc(len)));
+	if (fread(buf, 1, len, f) != len) {
 		throw std::runtime_error("parse_raw read not enough bytes");
 	}
-}
-
-void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
-{
-	parse_raw(f, offset, len, arg); // TODO get name if it exists
+	*s = std::string(buf, len);
 }
 
 static void read_until(const char *buf, size_t& i, size_t len, char c)
 {
 	for ( ; i < len && buf[i] != c; ++i);
+}
+
+static void read_until(
+		const char *buf,
+		size_t& i,
+		size_t len,
+		const std::string& tok)
+{
+	size_t t(0), tmax(tok.size());
+	bool found(false);
+	while (!found && i < len) {
+		if (buf[i++] == tok[t]) {
+			++t;
+		} else {
+			t = 0;
+		}
+		if (t == tmax) {
+			found = true;
+		}
+	}
 }
 
 static void skip_interior(
@@ -134,11 +147,58 @@ static void skip_interior(
 	}
 }
 
+static bool lookahead(const char *buf, size_t& i, size_t len)
+{
+	// special cases
+	static const std::string t0("&lt;ref"), t0x("&gt;");
+	static const std::string t1("&lt;/"), t1x("&gt;");
+	if (i+t0.size() <= len && strncmp(buf+i, t0.c_str(), t0.size()) == 0) {
+		read_until(buf, i, len, t0x);
+		return true;
+	}
+	if (i+t1.size() <= len && strncmp(buf+i, t1.c_str(), t1.size()) == 0) {
+		read_until(buf, i, len, t1x);
+		return true;
+	}
+	return false;
+}
+
+#define MAX_CONTRIB_SIZE (1024 * 1024) // 1MB
+void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	std::string *s(reinterpret_cast<std::string *>(arg));
+	if (!s) {
+		return;
+	}
+	if (len > MAX_CONTRIB_SIZE) {
+		throw std::runtime_error("parse_contrib buffer too big");
+	}
+	if (fseek(f, offset, SEEK_SET) != 0) {
+		throw std::runtime_error("parse_text seek failed");
+	}
+	char *buf(static_cast<char *>(malloc(len)));
+	if (fread(buf, 1, len, f) != len) {
+		throw std::runtime_error("parse_text read too short");
+	}
+	size_t i(0);
+	read_until(buf, i, len, "<username>");
+	if (i < len) {
+		const size_t from(i);
+		read_until(buf, i, len, "</username>");
+		if (i < len) {
+			*s = std::string(buf+from, i-from-11);
+		}
+	}
+	free(buf);
+}
+
 static bool add_to(char c, std::string& term)
 {
 	switch (c) {
 	// simply elide these characters totally
-	case '.': case ',': case ';': case '"': case '=':
+	case ',': case ';': case '"': case '=': case '\'':
+	case '%': case '!': case '(': case ')': case '*':
+	case '^': case '$': case '~': case '`':
 		return false;
 	
 	// these are end-of-term signifiers
@@ -146,12 +206,12 @@ static bool add_to(char c, std::string& term)
 		return true;
 	
 	// these get converted to spaces and are consequently end-of-term
-	case ':':
+	case ':': case '.':
 		return true;
 	
 	// otherwise, just add to the term
 	default:
-		term += c;
+		term += tolower(c);
 		return false;
 	}
 }
@@ -196,6 +256,9 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (len > MAX_TEXT_SIZE) {
 		throw std::runtime_error("parse_text buffer too big");
 	}
+	if (fseek(f, offset, SEEK_SET) != 0) {
+		throw std::runtime_error("parse_text seek failed");
+	}
 	char *buf(static_cast<char *>(malloc(len)));
 	if (fread(buf, 1, len, f) != len) {
 		throw std::runtime_error("parse_text read too short");
@@ -203,8 +266,11 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 	std::string term;
 	term.reserve(TERM_RESERVE);
 	int square_stack(0);
-	bool pre_pipe(false), term_complete(false);
+	bool term_complete(false);
 	for (size_t i(0); i < len; ++i) {
+		if (lookahead(buf, i, len)) {
+			continue;
+		}
 		const char& c(buf[i]);
 		switch (c) {
 		case '{':
@@ -218,7 +284,6 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 		case ']':
 			square_stack--;
 			if (square_stack <= 0) {
-				pre_pipe = true;
 				square_stack = 0;
 			}
 			break;
@@ -226,16 +291,18 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 			read_until(buf, i, len, ';');
 			break;
 		default:
-			// [abc|def] => def
 			if (square_stack > 0) {
-				if (pre_pipe) {
-					if (c == '|') {
-						pre_pipe = false;
-					}
+				// [[abc]]          => abc
+				// [[abc|def]]      => def
+				// [http://xyz foo] => foo
+				// [[abc:def]]      => def
+				if (c == '|' || c == ' ' || c == ':' || c == '.') {
+					term.clear();
 					break;
 				}
 			}
 			term_complete = add_to(c, term);
+			break;
 		}
 		if (term_complete) {
 			if (term_passes(term)) {
