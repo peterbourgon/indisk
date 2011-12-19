@@ -4,6 +4,7 @@ CFLAGS = -Wall -Werror -pedantic -g -O3
 
 SRC = \
 	xmlparse.cc \
+	index_state.cc
 
 TST = \
 

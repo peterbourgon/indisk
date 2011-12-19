@@ -77,3 +77,38 @@ char stream::peek()
 	return c;
 }
 
+void parse_nil(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	//
+}
+
+void parse_raw(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	std::string *s(reinterpret_cast<std::string *>(arg));
+	if (!s) {
+		return;
+	}
+	if (fseek(f, offset, SEEK_SET) != 0) {
+		throw std::runtime_error("parse_raw failed during fseek");
+	}
+	s->reserve(len);
+	if (fread(const_cast<char *>(s->data()), 1, len, f) != len) {
+		throw std::runtime_error("parse_raw read not enough bytes");
+	}
+}
+
+void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	parse_raw(f, offset, len, arg); // TODO get name if it exists
+}
+
+void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	parse_text_context *ctx(reinterpret_cast<parse_text_context *>(arg));
+	if (!ctx) {
+		return;
+	}
+	// TODO get every token
+	const std::string term; // TODO
+	ctx->is.index(term, ctx->article, ctx->ofs_index);
+}
