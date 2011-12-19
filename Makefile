@@ -11,7 +11,7 @@ TST = \
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
-all: indexer
+all: indexer reader
 
 test: $(TST)
 
@@ -24,7 +24,10 @@ test_%: $(OBJ) test_%.cc
 indexer: $(OBJ) indexer.cc
 	$(CC) $(CFLAGS) -o $@ $^
 
-DSYM = $(addsuffix .dSYM, $(TST) indexer)
+reader: $(OBJ) reader.cc
+	$(CC) $(CFLAGS) -o $@ $^
+
+DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
 	rm -rfv indexer $(TST) $(DSYM) $(OBJ)
 

@@ -44,9 +44,16 @@ bool index_article(
 void merge(const std::string& header, const std::string& index)
 {
 	// :(
-	std::ostringstream oss;
-	oss << "cat " << index << " >> " << header;
-	system(oss.str().c_str());
+	{
+		std::ostringstream oss;
+		oss << "cat " << index << " >> " << header;
+		system(oss.str().c_str());
+	}
+	{
+		std::ostringstream oss;
+		oss << "mv " << header << " " << index;
+		system(oss.str().c_str());
+	}
 }
 
 int main(int argc, char *argv[])
@@ -56,12 +63,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	stream s(argv[1]);
-	std::ofstream ofs_header("index.header");
+	std::ofstream ofs_header("index.header", std::ios::binary);
 	if (!ofs_header.good()) {
 		std::cerr << "index.header: bad file" << std::endl;
 		return 2;
 	}
-	std::ofstream ofs_index(argv[2]);
+	std::ofstream ofs_index(argv[2], std::ios::binary);
 	if (!ofs_index.good()) {
 		std::cerr << argv[2] << ": bad file" << std::endl;
 		return 3;

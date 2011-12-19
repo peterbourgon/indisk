@@ -34,16 +34,23 @@ uint32_t index_state::articleid(const std::string& s)
 	}
 }
 
+template<typename T>
+static void write(std::ofstream& ofs, const T& t)
+{
+	ofs.write(const_cast<char *>(reinterpret_cast<const char *>(&t)),
+				sizeof(T));
+}
+
 void index_state::flush(
 		std::ofstream& ofs_index,
 		uint32_t tid,
 		id_vector& aids)
 {
 	const uint32_t offset(ofs_index.tellp());
-	ofs_index << tid;
+	write<uint32_t>(ofs_index, offset);
 	typedef id_vector::const_iterator idvcit;
 	for (idvcit it(aids.begin()); it != aids.end(); ++it) {
-		ofs_index << *it;
+		write<uint32_t>(ofs_index, *it);
 	}
 	ofs_index << '\n';
 	register_tid_offset(tid, offset);
@@ -115,18 +122,23 @@ void index_state::write_header(std::ofstream& ofs_header)
 	uint32_t asz(articles.size()), tsz(terms.size()), offset(0);
 	
 	// write initial offset position (will put correct value later)
-	ofs_header << offset << '\n';
+	write<uint32_t>(ofs_header, offset);
+	ofs_header << '\n';
 	
 	// write article block
-	ofs_header << asz << '\n';
+	write<uint32_t>(ofs_header, asz);
+	ofs_header << '\n';
 	for (sidcit it(articles.begin()); it != articles.end(); ++it) {
-		ofs_header << it->second << it->first << '\n';
+		write<uint32_t>(ofs_header, it->second);
+		ofs_header << it->first << '\n';
 	}
 	
 	// write term block
-	ofs_header << tsz << '\n';
+	write<uint32_t>(ofs_header, tsz);
+	ofs_header << '\n';
 	for (sidcit it(terms.begin()); it != terms.end(); ++it) {
-		ofs_header << it->second << it->first << '|';
+		write<uint32_t>(ofs_header, it->second);
+		ofs_header << it->first << '|';
 		tocit tgt(tid_offsets.find(it->second));
 		if (tgt == tid_offsets.end()) {
 			std::cerr << "term " 
@@ -136,7 +148,7 @@ void index_state::write_header(std::ofstream& ofs_header)
 		}
 		const index_state::offset_vector& offsets(tgt->second);
 		for (ovcit it2(offsets.begin()); it2 != offsets.end(); ++it2) {
-			ofs_header << *it2;
+			write<uint32_t>(ofs_header, *it2);
 		}
 		ofs_header << '\n';
 	}
@@ -144,6 +156,7 @@ void index_state::write_header(std::ofstream& ofs_header)
 	// back-fill the offset position
 	offset = ofs_header.tellp();
 	ofs_header.seekp(0);
-	ofs_header << offset;
+	write<uint32_t>(ofs_header, offset);
 	ofs_header.seekp(offset);
+	std::cout << "wrote offset of " << offset << std::endl;
 }
