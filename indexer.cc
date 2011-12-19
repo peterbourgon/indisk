@@ -76,5 +76,6 @@ int main(int argc, char *argv[])
 	ofs_index.close();
 	ofs_header.close();
 	merge("index.header", argv[2]);
+	std::cout << articles << " articles indexed" << std::endl;
 	return 0;
 }

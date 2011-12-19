@@ -102,13 +102,148 @@ void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
 	parse_raw(f, offset, len, arg); // TODO get name if it exists
 }
 
+static void read_until(const char *buf, size_t& i, size_t len, char c)
+{
+	for ( ; i < len && buf[i] != c; ++i);
+}
+
+static void skip_interior(
+		const char *buf,
+		size_t& i,
+		size_t len,
+		char begin,
+		char end)
+{
+	if (buf[i] != begin) {
+		return;
+	}
+	int stack(0);
+	for ( ; i < len; ++i) {
+		const char& c(buf[i]);
+		if (c == begin) {
+			stack++;
+		} else if (c == end) {
+			stack--;
+		}
+		if (stack <= 0) {
+			if (i < len) {
+				i++;
+			}
+			break;
+		}
+	}
+}
+
+static bool add_to(char c, std::string& term)
+{
+	switch (c) {
+	// simply elide these characters totally
+	case '.': case ',': case ';': case '"': case '=':
+		return false;
+	
+	// these are end-of-term signifiers
+	case ' ': case '\t': case '\r': case '\n':
+		return true;
+	
+	// these get converted to spaces and are consequently end-of-term
+	case ':':
+		return true;
+	
+	// otherwise, just add to the term
+	default:
+		term += c;
+		return false;
+	}
+}
+
+static bool term_passes(const std::string& term)
+{
+	if (term.empty()) {
+		return false;
+	}
+	if (term.size() <= 2) {
+		return false;
+	}
+	// http://scottbryce.com/cryptograms/stats.htm
+	if (term.size() == 3 && (
+			term == "the" || term == "and" || term == "for" ||
+			term == "are" || term == "but" || term == "not" ||
+			term == "you" || term == "all" || term == "any" ||
+			term == "can" || term == "had" || term == "her" ||
+			term == "was" || term == "one" || term == "our" ||
+			term == "out" || term == "day" || term == "get" ||
+			term == "has" || term == "him" || term == "his" ||
+			term == "how" || term == "man" || term == "new" ||
+			term == "now" || term == "old" || term == "see" ||
+			term == "two" || term == "way" || term == "who" ||
+			term == "boy" || term == "did" || term == "its" ||
+			term == "let" || term == "put" || term == "say" ||
+			term == "she" || term == "too" || term == "use"
+		)) {
+		return false;
+	}
+	return true;
+}
+
+#define MAX_TEXT_SIZE (1024*1024*100) // 100 MB
+#define TERM_RESERVE  64
 void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 {
 	parse_text_context *ctx(reinterpret_cast<parse_text_context *>(arg));
 	if (!ctx) {
 		return;
 	}
-	// TODO get every token
-	const std::string term; // TODO
-	ctx->is.index(term, ctx->article, ctx->ofs_index);
+	if (len > MAX_TEXT_SIZE) {
+		throw std::runtime_error("parse_text buffer too big");
+	}
+	char *buf(static_cast<char *>(malloc(len)));
+	if (fread(buf, 1, len, f) != len) {
+		throw std::runtime_error("parse_text read too short");
+	}
+	std::string term;
+	term.reserve(TERM_RESERVE);
+	int square_stack(0);
+	bool pre_pipe(false), term_complete(false);
+	for (size_t i(0); i < len; ++i) {
+		const char& c(buf[i]);
+		switch (c) {
+		case '{':
+			skip_interior(buf, i, len, '{', '}');
+			break;
+		case '<':
+			skip_interior(buf, i, len, '<', '>');
+		case '[':
+			square_stack++;
+			break;
+		case ']':
+			square_stack--;
+			if (square_stack <= 0) {
+				pre_pipe = true;
+				square_stack = 0;
+			}
+			break;
+		case '&':
+			read_until(buf, i, len, ';');
+			break;
+		default:
+			// [abc|def] => def
+			if (square_stack > 0) {
+				if (pre_pipe) {
+					if (c == '|') {
+						pre_pipe = false;
+					}
+					break;
+				}
+			}
+			term_complete = add_to(c, term);
+		}
+		if (term_complete) {
+			if (term_passes(term)) {
+				ctx->is.index(term, ctx->article, ctx->ofs_index);
+			}
+			term.clear();
+			term_complete = false;
+		}
+	}
+	free(buf);
 }
