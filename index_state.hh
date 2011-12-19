@@ -68,6 +68,10 @@ public:
 	// Flush all remaining term ID + article ID vectors
 	// to the given file stream.
 	void finalize(std::ofstream& ofs_index);
+	
+	// After finalizing, write the index header
+	// to the given file stream.
+	void write_header(std::ofstream& ofs_header);
 };
 
 #endif

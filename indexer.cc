@@ -7,56 +7,6 @@
 #include "xmlparse.hh"
 #include "index_state.hh"
 
-void write_index_header(const index_state& is, std::ostream& ofs_header)
-{
-	if (!is.finalized) {
-		throw std::runtime_error("can't write index header without finalize");
-	}
-	
-	// <uint32_t offset where header ends and inverted index begins> '\n'
-	// <uint32_t number of articles> '\n'
-	// <uint32_t article ID> <article name as text> '\n'
-	//  . . .
-	// <uint32_t number of terms>\n
-	// <uint32_t term ID> <term as text> '|' <uint32_t offset 1> ... '\n'
-	//  . . .
-	
-	typedef index_state::str_id_map::const_iterator sidcit;
-	typedef index_state::offset_vector::const_iterator ovcit;
-	typedef index_state::tid_offsets_map::const_iterator tocit;
-	uint32_t asz(is.articles.size()), tsz(is.terms.size()), offset(0);
-	
-	// write initial offset position (will put correct value later)
-	ofs_header << offset << '\n';
-	
-	// write article block
-	ofs_header << asz << '\n';
-	for (sidcit it(is.articles.begin()); it != is.articles.end(); ++it) {
-		ofs_header << it->second << it->first << '\n';
-	}
-	
-	// write term block
-	ofs_header << tsz << '\n';
-	for (sidcit it(is.terms.begin()); it != is.terms.end(); ++it) {
-		ofs_header << it->second << it->first << '|';
-		tocit tgt(is.tid_offsets.find(it->second));
-		if (tgt == is.tid_offsets.end()) {
-			throw std::runtime_error("invalid state in index_state");
-		}
-		const index_state::offset_vector& offsets(tgt->second);
-		for (ovcit it2(offsets.begin()); it2 != offsets.end(); ++it2) {
-			ofs_header << *it2;
-		}
-		ofs_header << '\n';
-	}
-	
-	// back-fill the offset position
-	offset = ofs_header.tellp();
-	ofs_header.seekp(0);
-	ofs_header << offset;
-	ofs_header.seekp(offset);
-}
-
 bool index_article(
 		stream& s,
 		index_state& is,
@@ -122,7 +72,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	is.finalize(ofs_index);
-	write_index_header(is, ofs_header);
+	is.write_header(ofs_header);
 	ofs_index.close();
 	ofs_header.close();
 	merge("index.header", argv[2]);
