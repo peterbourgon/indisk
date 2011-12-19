@@ -296,12 +296,16 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 				// [[abc|def]]      => def
 				// [http://xyz foo] => foo
 				// [[abc:def]]      => def
-				if (c == '|' || c == ' ' || c == ':' || c == '.') {
+				if (
+						c == '|' ||
+						c == ' ' ||
+						square_stack > 1 && c == ':' // [[language:xx]]
+						) {
 					term.clear();
 					break;
 				}
 			}
-			term_complete = add_to(c, term);
+			term_complete = add_to(c, term) && square_stack <= 0;
 			break;
 		}
 		if (term_complete) {
