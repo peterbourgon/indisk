@@ -29,5 +29,5 @@ reader: $(OBJ) reader.cc
 
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
-	rm -rfv indexer $(TST) $(DSYM) $(OBJ)
+	rm -rfv indexer reader $(TST) $(DSYM) $(OBJ)
 

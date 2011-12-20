@@ -3,7 +3,6 @@
 #include <fstream>
 #include <stdexcept>
 #include <cstdio>
-#include <ext/hash_map>
 #include "xmlparse.hh"
 #include "index_state.hh"
 
@@ -19,7 +18,7 @@ bool index_article(
 	if (!s.read_until("<", parse_raw, &title)) {
 		return false;
 	}
-	std::cout << "parsed title: " << title << std::endl;
+	//std::cout << "parsed title: " << title << std::endl;
 	if (!s.read_until("<contributor>", NULL, NULL)) {
 		return false;
 	}
@@ -27,7 +26,7 @@ bool index_article(
 	if (!s.read_until("</contributor>", parse_contrib, &contrib)) {
 		return false;
 	}
-	std::cout << "parsed contributor: " << contrib << std::endl;
+	//std::cout << "parsed contributor: " << contrib << std::endl;
 	if (!s.read_until("<text", NULL, NULL)) {
 		return false;
 	}
@@ -86,5 +85,6 @@ int main(int argc, char *argv[])
 	ofs_header.close();
 	merge("index.header", argv[2]);
 	std::cout << articles << " articles indexed" << std::endl;
+	std::cout << is.term_count() << " terms indexed" << std::endl;
 	return 0;
 }

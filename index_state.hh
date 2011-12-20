@@ -1,20 +1,9 @@
 #ifndef INDEX_STATE_HH_
 #define INDEX_STATE_HH_
 
-#include <ext/hash_map>
 #include <vector>
 #include <fstream>
-
-namespace __gnu_cxx
-{
-	template<> struct hash<std::string>
-	{
-		size_t operator()(const std::string& s) const
-		{
-			return hash<const char *>()(s.c_str());
-		}
-	};
-}
+#include "hashmap.hh"
 
 #define FLUSH_LIMIT 64
 struct index_state
@@ -72,6 +61,9 @@ public:
 	// After finalizing, write the index header
 	// to the given file stream.
 	void write_header(std::ofstream& ofs_header);
+
+	// Return how many unique terms have been indexed.
+	size_t term_count() const;
 };
 
 #endif
