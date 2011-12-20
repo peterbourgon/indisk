@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include "xmlparse.hh"
 
@@ -63,7 +64,7 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 		const size_t len(end_offset - start_offset - tmax);
 		f(m_f, start_offset, len, arg);
 		fseek(m_f, tmax, SEEK_CUR);
-		assert(ftell(m_f) == end_offset);
+		assert(ftell(m_f) == static_cast<long>(end_offset));
 	}
 	
 	return true;
@@ -163,6 +164,37 @@ static bool lookahead(const char *buf, size_t& i, size_t len)
 	return false;
 }
 
+#define MAX_TITLE_SIZE (1024) // 1KB
+void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
+{
+	std::string *s(reinterpret_cast<std::string *>(arg));
+	if (!s) {
+		return;
+	}
+	if (len > MAX_TITLE_SIZE) {
+		throw std::runtime_error("parse_title buffer too big");
+	}
+	if (fseek(f, offset, SEEK_SET) != 0) {
+		throw std::runtime_error("parse_title seek failed");
+	}
+	char *buf(static_cast<char *>(malloc(len)));
+	if (fread(buf, 1, len, f) != len) {
+		throw std::runtime_error("parse_title read too short");
+	}
+	std::string title;
+	title.reserve(len);
+	for (size_t i(0); i < len; i++) {
+		const char& c(buf[i]);
+		switch (c) {
+		case '|':
+			continue;
+		}
+		title += c;
+	}
+	free(buf);
+	title.swap(*s);
+}
+
 #define MAX_CONTRIB_SIZE (1024 * 1024) // 1MB
 void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
 {
@@ -174,19 +206,22 @@ void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
 		throw std::runtime_error("parse_contrib buffer too big");
 	}
 	if (fseek(f, offset, SEEK_SET) != 0) {
-		throw std::runtime_error("parse_text seek failed");
+		throw std::runtime_error("parse_contrib seek failed");
 	}
 	char *buf(static_cast<char *>(malloc(len)));
 	if (fread(buf, 1, len, f) != len) {
-		throw std::runtime_error("parse_text read too short");
+		throw std::runtime_error("parse_contrib read too short");
 	}
+	static const std::string USERNAME_BEGIN("<username>");
+	static const std::string USERNAME_END("</username>");
+	static const size_t USERNAME_END_SZ(USERNAME_END.size());
 	size_t i(0);
-	read_until(buf, i, len, "<username>");
+	read_until(buf, i, len, USERNAME_BEGIN);
 	if (i < len) {
 		const size_t from(i);
-		read_until(buf, i, len, "</username>");
+		read_until(buf, i, len, USERNAME_END);
 		if (i < len) {
-			*s = std::string(buf+from, i-from-11);
+			*s = std::string(buf+from, i-from-USERNAME_END_SZ);
 		}
 	}
 	free(buf);
@@ -299,7 +334,7 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 				if (
 						c == '|' ||
 						c == ' ' ||
-						square_stack > 1 && c == ':' // [[language:xx]]
+						(square_stack > 1 && c == ':') // [[abc:def]]
 						) {
 					term.clear();
 					break;
