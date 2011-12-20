@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include "xmlparse.hh"
 

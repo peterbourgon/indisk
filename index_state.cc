@@ -1,6 +1,8 @@
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <cassert>
+#include <cstdlib>
 #include "index_state.hh"
 
 index_state::index_state()
@@ -10,7 +12,7 @@ index_state::index_state()
 {
 	//
 }
-	
+
 uint32_t index_state::termid(const std::string& s)
 {
 	str_id_map::const_iterator it(terms.find(s));
@@ -166,7 +168,7 @@ void index_state::write_header(std::ofstream& ofs_header)
 		ofs_header << it->first << '|';
 		tocit tgt(tid_offsets.find(it->second));
 		assert(tgt != tid_offsets.end());
-		const index_state::offset_vector& offsets(tgt->second);
+		const offset_vector& offsets(tgt->second);
 		assert(!offsets.empty());
 		for (ovcit it2(offsets.begin()); it2 != offsets.end(); ++it2) {
 			// this offset can be 0

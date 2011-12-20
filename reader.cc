@@ -2,7 +2,7 @@
 #include <fstream>
 #include <cassert>
 #include <stdexcept>
-#include "hashmap.hh"
+#include "definitions.hh"
 
 template<typename T>
 void read(std::ifstream& ifs, T& t)
@@ -36,10 +36,6 @@ struct index_repr {
 	uint32_t articles;
 	uint32_t terms;
 	
-	typedef __gnu_cxx::hash_map<uint32_t, std::string> aid_title_map;
-	typedef std::vector<uint32_t> header_offset_vector;
-	typedef __gnu_cxx::hash_map<std::string, header_offset_vector> term_hov_map;
-
 	aid_title_map aid_title;
 	term_hov_map term_hov;
 	
@@ -163,7 +159,7 @@ int main(int argc, char *argv[])
 	std::cout << idx.terms << " terms" << std::endl;
 	
 	size_t link_count(0);
-	typedef index_repr::term_hov_map::const_iterator thcit;
+	typedef term_hov_map::const_iterator thcit;
 	for (thcit it(idx.term_hov.begin()); it != idx.term_hov.end(); ++it) {
 		link_count += it->second.size();
 	}

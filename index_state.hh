@@ -3,19 +3,13 @@
 
 #include <vector>
 #include <fstream>
-#include "hashmap.hh"
+#include "definitions.hh"
 
 #define FLUSH_LIMIT 64
 struct index_state
 {
 public:
 	index_state();
-	
-	typedef std::vector<uint32_t> id_vector;
-	typedef std::vector<uint32_t> offset_vector;
-	typedef __gnu_cxx::hash_map<std::string, uint32_t> str_id_map;
-	typedef __gnu_cxx::hash_map<uint32_t, id_vector> tid_aids_map;
-	typedef __gnu_cxx::hash_map<uint32_t, offset_vector> tid_offsets_map;
 	
 	str_id_map articles;
 	str_id_map terms;

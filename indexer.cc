@@ -3,6 +3,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <cstdio>
+#include <cstdlib>
 #include "xmlparse.hh"
 #include "index_state.hh"
 
