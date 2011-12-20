@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 
+#ifndef UINT32_MAX
 #define UINT32_MAX (0xFFFFFFFF)
+#endif
 
 typedef std::vector<uint32_t> id_vector;
 typedef std::vector<uint32_t> offset_vector; // in index portion
