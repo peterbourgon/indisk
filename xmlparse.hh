@@ -39,7 +39,7 @@ struct parse_text_context {
 	std::ofstream& ofs_index;
 };
 
-void parse_raw(FILE *f, uint32_t offset, size_t len, void *arg);
+void parse_title(FILE *f, uint32_t offset, size_t len, void *arg);
 void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg);
 void parse_text(FILE *f, uint32_t offset, size_t len, void *arg);
 

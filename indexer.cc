@@ -16,7 +16,7 @@ bool index_article(
 		return false;
 	}
 	std::string title;
-	if (!s.read_until("<", parse_raw, &title)) {
+	if (!s.read_until("<", parse_title, &title)) {
 		return false;
 	}
 	//std::cout << "parsed title: " << title << std::endl;

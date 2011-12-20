@@ -81,22 +81,6 @@ char stream::peek()
 	return c;
 }
 
-void parse_raw(FILE *f, uint32_t offset, size_t len, void *arg)
-{
-	std::string *s(reinterpret_cast<std::string *>(arg));
-	if (!s) {
-		return;
-	}
-	if (fseek(f, offset, SEEK_SET) != 0) {
-		throw std::runtime_error("parse_raw failed during fseek");
-	}
-	char *buf(static_cast<char *>(malloc(len)));
-	if (fread(buf, 1, len, f) != len) {
-		throw std::runtime_error("parse_raw read not enough bytes");
-	}
-	*s = std::string(buf, len);
-}
-
 static void read_until(const char *buf, size_t& i, size_t len, char c)
 {
 	for ( ; i < len && buf[i] != c; ++i);
