@@ -1,6 +1,8 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -lpthread -g # -O3
+CFLAGS = -Wall -Werror -pedantic -O3
+
+LIB = -lpthread
 
 SRC = \
 	definitions.cc \
@@ -21,13 +23,13 @@ test: $(TST)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 test_%: $(OBJ) test_%.cc
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
 indexer: $(OBJ) indexer.cc
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
 reader: $(OBJ) reader.cc
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
