@@ -5,11 +5,19 @@
 #include <vector>
 #include <set>
 
+//
+// Constant definitions
+//
+
 #ifndef UINT32_MAX
 #define UINT32_MAX (0xFFFFFFFF)
 #endif
 
 static const char END_DELIM(0x03);
+
+//
+// Typedefs
+//
 
 typedef std::vector<uint32_t> id_vector;
 typedef std::vector<uint32_t> offset_vector; // in index portion
@@ -44,6 +52,12 @@ struct search_results {
 	size_t total;
 	std::set<search_result> top;
 };
+
+size_t get_cores();
+
+//
+// Use hash-semantic maps.
+//
 
 // Works On My Machines(tm)
 // The following code compiles on Mac OS X 10.7 (Lion) with the
@@ -98,6 +112,5 @@ typedef std::tr1::unordered_map<std::string, header_offset_vector> term_hov_map;
 #error g++ version 4.2 or higher is required
 
 #endif
-
 
 #endif

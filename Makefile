@@ -3,8 +3,9 @@ CC = g++
 CFLAGS = -Wall -Werror -pedantic -g # -O3
 
 SRC = \
+	definitions.cc \
 	xmlparse.cc \
-	index_state.cc
+	index_state.cc \
 
 TST = \
 
