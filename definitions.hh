@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 #ifndef UINT32_MAX
 #define UINT32_MAX (0xFFFFFFFF)
@@ -11,6 +12,36 @@
 typedef std::vector<uint32_t> id_vector;
 typedef std::vector<uint32_t> offset_vector; // in index portion
 typedef std::vector<uint32_t> header_offset_vector;
+
+struct search_result {
+	search_result(const std::string& article, size_t weight)
+	: article(article)
+	, weight(weight)
+	{
+		//
+	}
+	
+	bool operator<(const search_result& rhs) const
+	{
+		if (weight > rhs.weight) {
+			return true;
+		} else if (weight == rhs.weight) {
+			return article < rhs.article;
+		} else {
+			return false;
+		}
+	}
+	
+	std::string article;
+	size_t weight;
+};
+
+struct search_results {
+	search_results() : total(0) { }
+	
+	size_t total;
+	std::set<search_result> top;
+};
 
 // Works On My Machines(tm)
 // The following code compiles on Mac OS X 10.7 (Lion) with the

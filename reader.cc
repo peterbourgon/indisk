@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cassert>
 #include <stdexcept>
+#include <map>
 #include "definitions.hh"
 
 template<typename T>
@@ -9,6 +10,8 @@ void read(std::ifstream& ifs, T& t)
 {
 	ifs.read(reinterpret_cast<char *>(&t), sizeof(T));
 }
+
+#define MAX_SEARCH_RESULTS 25
 
 struct index_repr {
 	index_repr(const std::string& filename)
@@ -104,24 +107,35 @@ struct index_repr {
 			assert(c == '\n');
 		}
 	}
-
-	void search(const std::string& term, std::vector<std::string>& articles) const
+	
+	void search(const std::string& term, search_results& results) const
 	{
-		assert(ifs_ptr);
+		// make sure the term exists in our in-memory term index
 		term_hov_map::const_iterator tgt(term_hov.find(term));
 		if (tgt == term_hov.end()) {
 			return;
 		}
+		
+		// set up
+		assert(ifs_ptr);
 		std::ifstream& ifs(*ifs_ptr);
 		const header_offset_vector& hov(tgt->second);
 		std::cout << term << ": " << hov.size() << " offset(s)" << std::endl;
 		typedef header_offset_vector::const_iterator hovcit;
 		std::vector<uint32_t> articleids;
 		char c(0);
+		
+		// collect all the articles which contain this term
+		// (each article may be represented multiple times)
 		for (hovcit it(hov.begin()); it != hov.end(); ++it) {
+			
+			// each entry represents an offset in the file
+			// which begins a sequence of article IDs
+			// terminated by UINT32_MAX
 			const uint32_t term_offset(*it);
-			std::cout << term << ": offset " << term_offset << std::endl;
-			// <uint32_t term ID> <uint32_t article ID> . . . <uint32_t UINT32_MAX> '\n'
+			
+			// <uint32_t term ID> <uint32_t article ID> . . . 
+			//   <uint32_t UINT32_MAX> '\n'
 			ifs.seekg(term_offset);
 			uint32_t termid(0);
 			read<uint32_t>(ifs, termid);
@@ -138,17 +152,48 @@ struct index_repr {
 			read<char>(ifs, c);
 			assert(c == '\n');
 		}
-		std::cout << term << " yielded " << articleids.size() << " articles" << std::endl;
-		articles.reserve(articleids.size());
+		std::cout << term 
+				  << " yielded " << articleids.size() << " articles" 
+				  << " including duplicates" << std::endl;
+		
+		// now aggregate those article IDs into a map of ID to count
+		typedef std::map<uint32_t, size_t> aid_count_map;
+		aid_count_map acm;
 		typedef std::vector<uint32_t>::const_iterator uvcit;
 		for (uvcit it(articleids.begin()); it != articleids.end(); ++it) {
-			aid_title_map::const_iterator tgt2(aid_title.find(*it));
-			assert(tgt2 != aid_title.end());
-			std::cout << '\t' << tgt2->second << std::endl;
-			articles.push_back(tgt2->second);
+			const uint32_t& articleid(*it);
+			aid_count_map::iterator tgt(acm.find(articleid));
+			if (tgt != acm.end()) {
+				tgt->second++;
+			} else {
+				acm[articleid] = 1;
+			}
+		}
+		
+		// and convert that map into search_results
+		results.total = acm.size();
+		size_t count(0);
+		typedef aid_count_map::const_iterator acmcit;
+		for (acmcit it(acm.begin());
+				it != acm.end() && ++count <= MAX_SEARCH_RESULTS;
+					++it) {
+			aid_title_map::const_iterator tgt(aid_title.find(it->first));
+			assert(tgt != aid_title.end());
+			results.top.insert(search_result(tgt->second, it->second));
 		}
 	}
 };
+
+void print_results(const index_repr& idx, const std::string& term)
+{
+	search_results results;
+	idx.search(term, results);
+	std::cout << term << ": " << results.total << " hits" << std::endl;
+	typedef std::set<search_result>::const_iterator srit;
+	for (srit it(results.top.begin()); it != results.top.end(); ++it) {
+		std::cout << it->article << " (" << it->weight << ")" << std::endl;
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -168,10 +213,7 @@ int main(int argc, char *argv[])
 		link_count += it->second.size();
 	}
 	std::cout << link_count << " term-offset links" << std::endl;
-
-	std::vector<std::string> search_results;
-	idx.search("poetry", search_results);
-	std::cout << "poetry: " << search_results.size() << " hits" << std::endl;
-	
+	print_results(idx, "poetry");
+	print_results(idx, "red");
 	return 0;
 }
