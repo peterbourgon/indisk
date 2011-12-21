@@ -15,7 +15,7 @@ size_t get_cpus()
 	return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
-#ifdef __APPLE__ & __MACH__
+#ifdef __APPLE__
 	size_t cores(1);
 	int mib[4];
 	size_t len(sizeof(cores));

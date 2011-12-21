@@ -105,7 +105,7 @@ size_t stream::size()
 	if (fseek(m_f, start_offset, SEEK_SET) != 0) {
 		throw std::runtime_error("stream: size: seek to origin: fail");
 	}
-	assert(ftell(m_f) == start_offset);
+	assert(ftell(m_f) == static_cast<long>(start_offset));
 	return end_offset;
 }
 

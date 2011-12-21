@@ -3,6 +3,7 @@
 
 extern "C" {
 	#include <sys/time.h>
+	#include <pthread.h>
 }
 
 scoped_lock::scoped_lock(pthread_mutex_t& mx, bool initially_locked)
