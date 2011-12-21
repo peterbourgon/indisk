@@ -152,14 +152,18 @@ int main(int argc, char *argv[])
 		t->start();
 		threads.push_back(t);
 	}
-	while (true) {
+	for (size_t i(1); ; i++) {
 		size_t finished_count(0);
 		for (thit it(threads.begin()); it != threads.end(); ++it) {
 			if ((*it)->finished()) {
 				finished_count++;
 			}
 		}
-		std::cout << is.article_count() << " articles indexed" << std::endl;
+		const size_t articles(is.article_count());
+		const size_t aps(articles / i);
+		std::cout << is.article_count() << " articles indexed" 
+		          << " (~" << aps << "/s)" 
+		          << std::endl;
 		if (finished_count >= threads.size()) {
 			break;
 		}

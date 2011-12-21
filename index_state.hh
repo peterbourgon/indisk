@@ -6,7 +6,7 @@
 #include "definitions.hh"
 #include "thread.hh"
 
-#define FLUSH_LIMIT 64
+#define FLUSH_LIMIT 256
 struct index_state : public monitor
 {
 public:
