@@ -128,7 +128,7 @@ void index_state::write_header(std::ofstream& ofs_header)
 	// <uint32_t article ID> <article name as text> '\n'
 	//  . . .
 	// <uint32_t number of terms>\n
-	// <uint32_t term ID> <term as text> '|' <uint32_t offset 1> ... 
+	// <uint32_t term ID> <term as text> '!' <uint32_t offset 1> ... 
 	//    <uint32_t UINT32_MAX> '\n'
 	//  . . .
 	
@@ -165,7 +165,8 @@ void index_state::write_header(std::ofstream& ofs_header)
 		assert(it->second > 0);
 		write<uint32_t>(ofs_header, it->second);
 		assert(!it->first.empty());
-		ofs_header << it->first << '|';
+		assert(it->first.find("!") == std::string::npos);
+		ofs_header << it->first << '!';
 		tocit tgt(tid_offsets.find(it->second));
 		assert(tgt != tid_offsets.end());
 		const offset_vector& offsets(tgt->second);

@@ -171,7 +171,7 @@ void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
 	for (size_t i(0); i < len; i++) {
 		const char& c(buf[i]);
 		switch (c) {
-		case '|':
+		case '!':
 			continue;
 		}
 		title += c;

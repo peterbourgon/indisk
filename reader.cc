@@ -44,7 +44,8 @@ struct index_repr {
 		char c;
 		assert(ifs_ptr);
 		std::ifstream& ifs(*ifs_ptr);
-
+		
+		// header section:
 		// <uint32_t index_offset> '\n'
 		read<uint32_t>(ifs, index_offset);
 		read<char>(ifs, c);
@@ -68,8 +69,8 @@ struct index_repr {
 		}
 
 		// <uint32_t term count> '\n'
-		// <uint32_t term ID> <term> '|' <uint32_t offset> . . . 
-		//    <uint32_t UINT32_MAX> '\n'
+		// <uint32_t term ID> <term> '!'
+		//    <uint32_t offset> . . . <uint32_t UINT32_MAX> '\n'
 		//  . . .
 		read<uint32_t>(ifs, terms);
 		read<char>(ifs, c);
@@ -79,9 +80,8 @@ struct index_repr {
 			read<uint32_t>(ifs, termid);
 			assert(termid > 0);
 			std::string term;
-			std::getline(ifs, term, '|');
+			std::getline(ifs, term, '!');
 			assert(!term.empty());
-			assert(term_hov.find(term) == term_hov.end());
 			header_offset_vector hov;
 			uint32_t header_offset(0);
 			while (true) {
@@ -91,11 +91,15 @@ struct index_repr {
 				}
 				header_offset += index_offset;
 				assert(header_offset > 0);
-				std::cout << termid << ": " << term << " offset @" << header_offset << std::endl;
 				hov.push_back(header_offset);
 			}
 			assert(!hov.empty());
-			term_hov[term] = hov;
+			term_hov_map::iterator tgt(term_hov.find(term));
+			if (tgt != term_hov.end()) {
+				tgt->second.insert(tgt->second.end(), hov.begin(), hov.end());
+			} else {
+				term_hov[term] = hov;
+			}
 			read<char>(ifs, c);
 			assert(c == '\n');
 		}

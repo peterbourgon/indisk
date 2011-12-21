@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <cstdio>
 #include <cstdlib>
+#include <cassert>
 #include "xmlparse.hh"
 #include "index_state.hh"
 
@@ -19,6 +20,7 @@ bool index_article(
 	if (!s.read_until("<", parse_title, &title)) {
 		return false;
 	}
+	assert(title.find("!") == std::string::npos);
 	//std::cout << "parsed title: " << title << std::endl;
 	if (!s.read_until("<contributor>", NULL, NULL)) {
 		return false;
