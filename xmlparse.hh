@@ -6,6 +6,8 @@
 #include <fstream>
 #include "index_state.hh"
 
+#define DEFAULT_READ_BUFFER_SIZE (256)
+
 typedef void (*readfunc)(FILE *, uint32_t, size_t, void *);
 
 class stream
@@ -15,7 +17,7 @@ public:
 			const std::string& filename,
 			size_t from_pos=0,
 			size_t to_pos=0,
-			size_t bufsz=32768);
+			size_t bufsz=DEFAULT_READ_BUFFER_SIZE);
 	~stream();
 	bool read_until(const std::string& tok, readfunc f, void *arg);
 	char peek();

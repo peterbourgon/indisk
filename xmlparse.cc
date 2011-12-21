@@ -16,7 +16,7 @@ stream::stream(
 , m_bufsz(bufsz)
 , m_finished(false)
 {
-	if (m_bufsz <= 0 || m_bufsz > (1024*1024)) {
+	if (m_bufsz <= 0 || m_bufsz > (1024*1024*1024)) {
 		throw std::runtime_error("bad buffer size");
 	}
 	if (m_f == NULL) {

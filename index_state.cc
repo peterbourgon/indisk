@@ -18,7 +18,6 @@ index_state::index_state(const std::string index_filename)
 	if (!ofs_index.good()) {
 		throw std::runtime_error("bad index file");
 	}
-
 }
 
 uint32_t index_state::termid(const std::string& s)

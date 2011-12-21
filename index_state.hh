@@ -6,7 +6,10 @@
 #include "definitions.hh"
 #include "thread.hh"
 
+// How many articles we will link to a term in the inverted index
+// before flushing that information to the disk (index file).
 #define FLUSH_LIMIT 256
+
 struct index_state : public monitor
 {
 public:
