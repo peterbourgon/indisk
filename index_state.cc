@@ -88,7 +88,11 @@ void index_state::index(
 		const std::string& article,
 		std::ofstream& ofs_index)
 {
-	assert(!term.empty() && !article.empty());
+	assert(!term.empty());
+	if (article.empty()) {
+		std::cerr << term << " with empty article" << std::endl;
+	}
+	assert(!article.empty());
 	if (finalized) {
 		throw std::runtime_error("can't index after finalize");
 	}
@@ -128,7 +132,7 @@ void index_state::write_header(std::ofstream& ofs_header)
 	// <uint32_t article ID> <article name as text> '\n'
 	//  . . .
 	// <uint32_t number of terms>\n
-	// <uint32_t term ID> <term as text> '!' <uint32_t offset 1> ... 
+	// <uint32_t term ID> <term as text> END_DELIM <uint32_t offset 1> ... 
 	//    <uint32_t UINT32_MAX> '\n'
 	//  . . .
 	
@@ -165,8 +169,8 @@ void index_state::write_header(std::ofstream& ofs_header)
 		assert(it->second > 0);
 		write<uint32_t>(ofs_header, it->second);
 		assert(!it->first.empty());
-		assert(it->first.find("!") == std::string::npos);
-		ofs_header << it->first << '!';
+		assert(it->first.find(END_DELIM) == std::string::npos);
+		ofs_header << it->first << END_DELIM;
 		tocit tgt(tid_offsets.find(it->second));
 		assert(tgt != tid_offsets.end());
 		const offset_vector& offsets(tgt->second);

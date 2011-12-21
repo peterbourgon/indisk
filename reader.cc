@@ -72,7 +72,7 @@ struct index_repr {
 		}
 
 		// <uint32_t term count> '\n'
-		// <uint32_t term ID> <term> '!'
+		// <uint32_t term ID> <term> END_DELIM
 		//    <uint32_t offset> . . . <uint32_t UINT32_MAX> '\n'
 		//  . . .
 		read<uint32_t>(ifs, terms);
@@ -83,7 +83,7 @@ struct index_repr {
 			read<uint32_t>(ifs, termid);
 			assert(termid > 0);
 			std::string term;
-			std::getline(ifs, term, '!');
+			std::getline(ifs, term, END_DELIM);
 			assert(!term.empty());
 			header_offset_vector hov;
 			uint32_t header_offset(0);

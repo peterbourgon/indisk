@@ -9,6 +9,8 @@
 #define UINT32_MAX (0xFFFFFFFF)
 #endif
 
+static const char END_DELIM(0x03);
+
 typedef std::vector<uint32_t> id_vector;
 typedef std::vector<uint32_t> offset_vector; // in index portion
 typedef std::vector<uint32_t> header_offset_vector;

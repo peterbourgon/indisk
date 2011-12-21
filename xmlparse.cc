@@ -171,7 +171,7 @@ void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
 	for (size_t i(0); i < len; i++) {
 		const char& c(buf[i]);
 		switch (c) {
-		case '!':
+		case END_DELIM:
 			continue;
 		}
 		title += c;
@@ -216,9 +216,10 @@ static bool add_to(char c, std::string& term)
 {
 	switch (c) {
 	// simply elide these characters totally
+	case END_DELIM:
 	case ',': case ';': case '"': case '=': case '\'':
 	case '%': case '!': case '(': case ')': case '*':
-	case '^': case '$': case '~': case '`':
+	case '^': case '$': case '~': case '`': case '#':
 		return false;
 	
 	// these are end-of-term signifiers
@@ -273,6 +274,7 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (!ctx) {
 		return;
 	}
+	assert(!ctx->article.empty());
 	if (len > MAX_TEXT_SIZE) {
 		throw std::runtime_error("parse_text buffer too big");
 	}
