@@ -5,8 +5,14 @@
 #include <iostream>
 #include "xmlparse.hh"
 
-stream::stream(const std::string& filename, size_t bufsz)
+stream::stream(
+		const std::string& filename,
+		size_t from_pos,
+		size_t to_pos,
+		size_t bufsz)
 : m_f(fopen(filename.c_str(), "rb"))
+, m_from_pos(from_pos)
+, m_to_pos(to_pos)
 , m_bufsz(bufsz)
 , m_finished(false)
 {
@@ -16,6 +22,7 @@ stream::stream(const std::string& filename, size_t bufsz)
 	if (m_f == NULL) {
 		throw std::runtime_error("bad file");
 	}
+	fseek(m_f, m_from_pos, SEEK_SET);
 }
 
 stream::~stream()
@@ -31,10 +38,14 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 	size_t total_readbytes(0), total_seekbytes(0);
 	size_t t(0), tmax(tok.size());
 	uint32_t start_offset(ftell(m_f));
+	uint32_t pos(start_offset);
 	
 	bool found(false), last_read(false);
 	while (!found && !last_read) {
-		const size_t seekbytes(fread(buf, 1, m_bufsz, m_f));
+		const size_t remaining(m_to_pos - pos);
+		const size_t readsize( remaining < m_bufsz ? remaining : m_bufsz );
+		pos += readsize;
+		const size_t seekbytes(fread(buf, 1, readsize, m_f));
 		last_read = seekbytes < m_bufsz;
 		size_t i(0);
 		for ( ; i < seekbytes && !found; ++i) {
@@ -59,7 +70,10 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 	const long int rewind_bytes(total_readbytes - total_seekbytes);
 	assert(rewind_bytes <= 0);
 	fseek(m_f, rewind_bytes, SEEK_CUR);
-
+	const size_t previous_pos(pos);
+	pos += rewind_bytes;
+	assert(pos <= previous_pos);
+	
 	if (f) {
 		const uint32_t end_offset(ftell(m_f));
 		const size_t len(end_offset - start_offset - tmax);
@@ -79,6 +93,32 @@ char stream::peek()
 	const char c(fgetc(m_f));
 	fseek(m_f, -1, SEEK_CUR);
 	return c;
+}
+
+size_t stream::size()
+{
+	const uint32_t start_offset(ftell(m_f));
+	if (fseek(m_f, 0, SEEK_END) != 0) {
+		throw std::runtime_error("stream: size: seek to end: fail");
+	}
+	const uint32_t end_offset(ftell(m_f));
+	if (fseek(m_f, start_offset, SEEK_SET) != 0) {
+		throw std::runtime_error("stream: size: seek to origin: fail");
+	}
+	assert(ftell(m_f) == start_offset);
+	return end_offset;
+}
+
+void stream::seek(uint32_t pos)
+{
+	if (fseek(m_f, pos, SEEK_SET) != 0) {
+		throw std::runtime_error("stream: seek: fail");
+	}
+}
+
+size_t stream::tell()
+{
+	return ftell(m_f);
 }
 
 static void read_until(const char *buf, size_t& i, size_t len, char c)
@@ -332,7 +372,7 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 		}
 		if (term_complete) {
 			if (term_passes(term)) {
-				ctx->is.index(term, ctx->article, ctx->ofs_index);
+				ctx->is.index(term, ctx->article);
 			}
 			term.clear();
 			term_complete = false;

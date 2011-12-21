@@ -7,11 +7,9 @@
 #include <cassert>
 #include "xmlparse.hh"
 #include "index_state.hh"
+#include "definitions.hh"
 
-bool index_article(
-		stream& s,
-		index_state& is,
-		std::ofstream& ofs_index)
+bool index_article(stream& s, index_state& is)
 {
 	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
@@ -39,7 +37,7 @@ bool index_article(
 	if (!s.read_until(">", NULL, NULL)) {
 		return false;
 	}
-	parse_text_context ctx(title, is, ofs_index);
+	parse_text_context ctx(title, is);
 	if (!s.read_until("</text", parse_text, &ctx)) {
 		return false;
 	}
@@ -61,36 +59,120 @@ void merge(const std::string& header, const std::string& index)
 	}
 }
 
+class index_thread : public synchronized_threadbase
+{
+public:
+	index_thread(
+			const std::string& filename,
+			size_t start_pos,
+			size_t end_pos,
+			index_state& is)
+	: m_stream(filename, start_pos, end_pos)
+	, m_is(is)
+	, m_finished(false)
+	{
+		//
+	}
+	
+	virtual void run()
+	{
+		while (index_article(m_stream, m_is));
+		scoped_lock sync(monitor_mutex);
+		m_finished = true;
+	}
+	
+	bool finished() const
+	{
+		scoped_lock sync(monitor_mutex);
+		return m_finished;
+	}
+	
+private:
+	stream m_stream;
+	index_state& m_is;
+	bool m_finished;
+};
+
+typedef std::pair<size_t, size_t> split_pair;
+typedef std::vector<split_pair> split_pairs;
+
+split_pairs get_split_positions(const std::string& xml_filename)
+{
+	split_pairs p;
+	const size_t ncpu(get_cpus());
+	std::cout << "indexing on " << ncpu << " threads" << std::endl;
+	stream s(xml_filename);
+	const size_t sz(s.size());
+	size_t last_end(0);
+	
+	// split up the file into roughly equal sections
+	// based on the <title> delimiter
+	for (size_t i(0); i < ncpu-1; ++i) {
+		// begin where we left off
+		size_t begin_pos(last_end);
+		s.seek(begin_pos);
+		// look for the next <title>
+		s.read_until("<title>", NULL, NULL);
+		// we will make one partition from here
+		begin_pos = s.tell();
+		// move to where we think the next title may be
+		size_t end_pos( (sz / ncpu) * (i+1) );
+		s.seek(end_pos);
+		// look for the next <title>
+		s.read_until("<title>", NULL, NULL);
+		assert(s.tell() > 0);
+		// we will make that partition end here
+		end_pos = s.tell();
+		// insert the partition
+		p.push_back(std::make_pair(begin_pos, end_pos));
+		// and mark where we begin the next search
+		last_end = end_pos;
+	}
+	
+	// make sure we get all the bytes
+	p.push_back(std::make_pair(last_end, s.size()));
+	return p;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 3) {
 		std::cerr << "usage: " << argv[0] << " <xml> <idx>" << std::endl;
 		return 1;
 	}
-	stream s(argv[1]);
-	std::ofstream ofs_header("index.header", std::ios::binary);
-	if (!ofs_header.good()) {
-		std::cerr << "index.header: bad file" << std::endl;
-		return 2;
+	index_state is(argv[2]);
+	split_pairs p(get_split_positions(argv[1]));
+	std::vector<index_thread *> threads;
+	typedef std::vector<index_thread *>::iterator thit;
+	for (split_pairs::const_iterator it(p.begin()); it != p.end(); ++it) {
+		std::cout << "partition: "
+		          << it->first << '-' << it->second
+		          << std::endl;
+		index_thread *t(new index_thread(argv[1], it->first, it->second, is));
+		t->start();
+		threads.push_back(t);
 	}
-	std::ofstream ofs_index(argv[2], std::ios::binary);
-	if (!ofs_index.good()) {
-		std::cerr << argv[2] << ": bad file" << std::endl;
-		return 3;
-	}
-	index_state is;
-	size_t articles(0);
-	while (index_article(s, is, ofs_index)) {
-		if (++articles % 10000 == 0) {
-			std::cout << articles << " articles indexed" << std::endl;
+	while (true) {
+		size_t finished_count(0);
+		for (thit it(threads.begin()); it != threads.end(); ++it) {
+			if ((*it)->finished()) {
+				finished_count++;
+			}
 		}
+		std::cout << is.article_count() << " articles indexed" << std::endl;
+		if (finished_count >= threads.size()) {
+			break;
+		}
+		sleep(1);
 	}
-	is.finalize(ofs_index);
-	is.write_header(ofs_header);
-	ofs_index.close();
-	ofs_header.close();
-	merge("index.header", argv[2]);
-	std::cout << articles << " articles indexed" << std::endl;
 	std::cout << is.term_count() << " terms indexed" << std::endl;
+	for (thit it(threads.begin()); it != threads.end(); ++it) {
+		(*it)->join();
+		delete *it;
+	}
+	std::cout << "finalizing" << std::endl;
+	is.finalize();
+	std::cout << "merging" << std::endl;
+	merge("index.header", argv[2]);
 	return 0;
 }

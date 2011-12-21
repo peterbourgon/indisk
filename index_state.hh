@@ -4,18 +4,21 @@
 #include <vector>
 #include <fstream>
 #include "definitions.hh"
+#include "thread.hh"
 
 #define FLUSH_LIMIT 64
-struct index_state
+struct index_state : public monitor
 {
 public:
-	index_state();
+	index_state(const std::string index_filename);
 	
 	str_id_map articles;
 	str_id_map terms;
 	tid_aids_map inverted_index;
 	tid_offsets_map tid_offsets;
 	
+	std::ofstream ofs_header;
+	std::ofstream ofs_index;
 	bool finalized;
 	
 private:
@@ -37,26 +40,24 @@ private:
 	// used while writing the index header.
 	void register_tid_offset(uint32_t tid, uint32_t offset);
 	
+	// Write the index header to the given header file stream.
+	void write_header();
+	
 public:
 	
 	// Associate the given article to the given term.
 	// If FLUSH_LIMIT articles have been associated with the term,
 	// flush that term ID + article ID list to the given file stream,
 	// and register the resultant offset with the term ID, for the header.
-	void index(
-			const std::string& term,
-			const std::string& article,
-			std::ofstream& ofs_index);
+	void index(const std::string& term, const std::string& article);
 	
 	// Flush all remaining term ID + article ID vectors
 	// to the given file stream.
-	void finalize(std::ofstream& ofs_index);
+	void finalize();
 	
-	// After finalizing, write the index header
-	// to the given file stream.
-	void write_header(std::ofstream& ofs_header);
 
-	// Return how many unique terms have been indexed.
+	// Return how many unique articles or terms have been indexed.
+	size_t article_count() const;
 	size_t term_count() const;
 };
 

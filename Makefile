@@ -6,6 +6,7 @@ SRC = \
 	definitions.cc \
 	xmlparse.cc \
 	index_state.cc \
+	thread.cc \
 
 TST = \
 

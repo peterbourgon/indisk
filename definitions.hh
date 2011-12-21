@@ -53,7 +53,7 @@ struct search_results {
 	std::set<search_result> top;
 };
 
-size_t get_cores();
+size_t get_cpus();
 
 //
 // Use hash-semantic maps.

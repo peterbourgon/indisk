@@ -6,7 +6,7 @@ extern "C" {
 	#include <sys/sysctl.h>
 }
 
-size_t cpus()
+size_t get_cpus()
 {
 	// Optimize indexing based on available cores.
 	// http://stackoverflow.com/questions/150355
@@ -15,7 +15,7 @@ size_t cpus()
 	return sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
-#ifdef __APPLE__ & __MACH__
+#ifdef __APPLE__ & __MACH__ & 0
 	size_t cores(1);
 	int mib[4];
 	size_t len(sizeof(cores));

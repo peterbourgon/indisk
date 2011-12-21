@@ -5,12 +5,20 @@
 #include <cstdlib>
 #include "index_state.hh"
 
-index_state::index_state()
-: finalized(false)
+index_state::index_state(const std::string index_filename)
+: ofs_header("index.header", std::ios::binary)
+, ofs_index(index_filename.c_str(), std::ios::binary)
+, finalized(false)
 , aid(1)
 , tid(1)
 {
-	//
+	if (!ofs_header.good()) {
+		throw std::runtime_error("index.header: bad file");
+	}
+	if (!ofs_index.good()) {
+		throw std::runtime_error("bad index file");
+	}
+
 }
 
 uint32_t index_state::termid(const std::string& s)
@@ -83,15 +91,10 @@ void index_state::register_tid_offset(uint32_t tid, uint32_t offset)
 	}
 }
 	
-void index_state::index(
-		const std::string& term,
-		const std::string& article,
-		std::ofstream& ofs_index)
+void index_state::index(const std::string& term, const std::string& article)
 {
+	scoped_lock sync(monitor_mutex);
 	assert(!term.empty());
-	if (article.empty()) {
-		std::cerr << term << " with empty article" << std::endl;
-	}
 	assert(!article.empty());
 	if (finalized) {
 		throw std::runtime_error("can't index after finalize");
@@ -112,16 +115,20 @@ void index_state::index(
 	}
 }
 
-void index_state::finalize(std::ofstream& ofs_index)
+void index_state::finalize()
 {
+	scoped_lock sync(monitor_mutex);
 	typedef tid_aids_map::iterator xit;
 	for (xit it(inverted_index.begin()); it != inverted_index.end(); ++it) {
 		flush(ofs_index, it->first, it->second);
 	}
 	finalized = true;
+	write_header();
+	ofs_header.close();
+	ofs_index.close();
 }
 
-void index_state::write_header(std::ofstream& ofs_header)
+void index_state::write_header()
 {
 	if (!finalized) {
 		throw std::runtime_error("can't write index header without finalize");
@@ -190,14 +197,19 @@ void index_state::write_header(std::ofstream& ofs_header)
 	ofs_header.seekp(0);
 	write<uint32_t>(ofs_header, offset);
 	ofs_header.seekp(offset);
-	//std::cout << "wrote offset of " << offset << std::endl;
+}
+
+size_t index_state::article_count() const
+{
+	scoped_lock sync(monitor_mutex);
+	return articles.size();
 }
 
 size_t index_state::term_count() const
 {
+	scoped_lock sync(monitor_mutex);
 	const size_t t1(terms.size());
 	const size_t t2(inverted_index.size());
-	const size_t t3(tid_offsets.size());
-	assert(t1 == t2 && t2 == t3);
+	assert(t1 == t2);
 	return t1;
 }
