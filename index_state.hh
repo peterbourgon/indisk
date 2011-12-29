@@ -58,7 +58,6 @@ public:
 	// to the given file stream.
 	void finalize();
 	
-
 	// Return how many unique articles or terms have been indexed.
 	size_t article_count() const;
 	size_t term_count() const;

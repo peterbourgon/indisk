@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <algorithm>
 
 //
 // Constant definitions
@@ -50,7 +51,9 @@ struct search_results {
 	search_results() : total(0) { }
 	
 	size_t total;
-	std::set<search_result> top;
+	std::vector<search_result> top;
+	
+	void sort() { std::sort(top.begin(), top.end()); }
 };
 
 size_t get_cpus();

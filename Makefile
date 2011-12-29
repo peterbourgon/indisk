@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -O3
+CFLAGS = -Wall -Werror -pedantic -g
 
 LIB = -lpthread
 
