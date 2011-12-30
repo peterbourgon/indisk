@@ -11,29 +11,6 @@
 typedef void (*readfunc)(FILE *, uint32_t, size_t, void *);
 typedef void (*readfunc2)(std::ifstream&, uint64_t, uint64_t, void *);
 
-class stream
-{
-public:
-	stream(
-			const std::string& filename,
-			size_t from_pos=0,
-			size_t to_pos=0,
-			size_t bufsz=DEFAULT_READ_BUFFER_SIZE);
-	~stream();
-	bool read_until(const std::string& tok, readfunc f, void *arg);
-	char peek();
-	size_t size();
-	void seek(uint32_t pos);
-	size_t tell();
-
-private:
-	FILE *m_f;
-	const size_t m_from_pos;
-	const size_t m_to_pos;
-	const size_t m_bufsz;
-	bool m_finished;
-};
-
 class stream2
 {
 public:
