@@ -29,14 +29,20 @@ stream2::stream2(
 		const std::string& filename,
 		uint64_t from,
 		uint64_t to)
-: m_f(filename.c_str(), std::ios::binary)
+: m_f(filename.c_str(), std::ios::in & std::ios::binary)
 , m_from(from)
 , m_to(to)
 {
-	m_f.seekg(from);
+	if (!m_f.good()) {
+		throw std::runtime_error("bad input file");
+	}
+	if (from > 0) {
+		m_f.seekg(from);
+	}
 	if (m_to <= 0) {
 		m_to = size();
 	}
+	assert(m_f.good());
 }
 
 stream::~stream()

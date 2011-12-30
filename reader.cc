@@ -247,28 +247,35 @@ int main(int argc, char *argv[])
 		std::cerr << "usage: " << argv[0] << " <idx> [<idx> ...]" << std::endl;
 		return 1;
 	}
-	std::vector<index_repr *> indices;
-	for (int i(1); i < argc; ++i) {
-		index_repr *idx(new index_repr(argv[i]));
-		idx->parse();
-		std::cout << argv[i] << ": offset @" << idx->index_offset << std::endl;
-		std::cout << argv[i] << ": " << idx->articles << " articles" << std::endl;
-		std::cout << argv[i] << ": " << idx->terms << " terms" << std::endl;
-		indices.push_back(idx);
-	}
-	while (true) {
-		std::string input;
-		std::cout << "> ";
-		std::getline(std::cin, input);
-		std::transform(input.begin(), input.end(), input.begin(), tolower);
-		if (input == "quit") {
-			break;
+	int rc(0);
+	try {
+		std::vector<index_repr *> indices;
+		for (int i(1); i < argc; ++i) {
+			index_repr *idx(new index_repr(argv[i]));
+			std::cout << "parsing " << argv[i] << std::endl;
+			idx->parse();
+			std::cout << argv[i] << ": offset @" << idx->index_offset << std::endl;
+			std::cout << argv[i] << ": " << idx->articles << " articles" << std::endl;
+			std::cout << argv[i] << ": " << idx->terms << " terms" << std::endl;
+			indices.push_back(idx);
 		}
-		print_results(indices, input);
+		while (true) {
+			std::string input;
+			std::cout << "> ";
+			std::getline(std::cin, input);
+			std::transform(input.begin(), input.end(), input.begin(), tolower);
+			if (input == "quit") {
+				break;
+			}
+			print_results(indices, input);
+		}
+		typedef std::vector<index_repr *>::iterator idxit;
+		for (idxit it(indices.begin()); it != indices.end(); ++it) {
+			delete (*it);
+		}
+	} catch (const std::runtime_error& ex) {
+		std::cerr << ex.what() << std::endl;
+		rc = -1;
 	}
-	typedef std::vector<index_repr *>::iterator idxit;
-	for (idxit it(indices.begin()); it != indices.end(); ++it) {
-		delete (*it);
-	}
-	return 0;
+	return rc;
 }

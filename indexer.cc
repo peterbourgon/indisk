@@ -11,7 +11,6 @@
 
 static bool index_article(stream2& s, index_state& is)
 {
-	std::cout << "index_article @" << s.tell() << std::endl;
 	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
 	}
@@ -106,20 +105,21 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	          << std::endl;
 	stream2 s(xml_filename, 0, 0);
 	const uint64_t sz(s.size());
-	uint64_t last_end(0);
+	std::ifstream::pos_type last_end(s.tell());
+	std::cout << xml_filename << ": " << last_end << " offsets" << std::endl;
 	
 	// split up the file into roughly equal sections
 	// based on the <title> delimiter
 	for (size_t i(0); i < ncpu-1; ++i) {
 		// begin where we left off
-		uint64_t begin_pos(last_end);
+		std::ifstream::pos_type begin_pos(last_end);
 		s.seek(begin_pos);
 		// look for the next <title>
 		s.read_until("<title>", NULL, NULL);
 		// we will make one partition from here
 		begin_pos = s.tell();
 		// move to where we think the next title may be
-		uint64_t end_pos( (sz / ncpu) * (i+1) );
+		std::ifstream::pos_type end_pos( (sz / ncpu) * (i+1) );
 		s.seek(end_pos);
 		// look for the next <title>
 		s.read_until("<title>", NULL, NULL);
@@ -143,43 +143,49 @@ int main(int argc, char *argv[])
 		std::cerr << "usage: " << argv[0] << " <xml> <idx>" << std::endl;
 		return 1;
 	}
-	index_state is(argv[2]);
-	split_pairs p(get_split_positions(argv[1]));
-	std::vector<index_thread *> threads;
-	typedef std::vector<index_thread *>::iterator thit;
-	for (split_pairs::const_iterator it(p.begin()); it != p.end(); ++it) {
-		std::cout << "partition: "
-		          << it->first << '-' << it->second
-		          << std::endl;
-		index_thread *t(new index_thread(argv[1], it->first, it->second, is));
-		t->start();
-		threads.push_back(t);
-	}
-	for (size_t i(1); ; i++) {
-		size_t finished_count(0);
-		for (thit it(threads.begin()); it != threads.end(); ++it) {
-			if ((*it)->finished()) {
-				finished_count++;
+	int rc(0);
+	try {
+		index_state is(argv[2]);
+		split_pairs p(get_split_positions(argv[1]));
+		std::vector<index_thread *> threads;
+		typedef std::vector<index_thread *>::iterator thit;
+		for (split_pairs::const_iterator it(p.begin()); it != p.end(); ++it) {
+			std::cout << "partition: "
+					  << it->first << '-' << it->second
+					  << std::endl;
+			index_thread *t(new index_thread(argv[1], it->first, it->second, is));
+			t->start();
+			threads.push_back(t);
+		}
+		for (size_t i(1); ; i++) {
+			size_t finished_count(0);
+			for (thit it(threads.begin()); it != threads.end(); ++it) {
+				if ((*it)->finished()) {
+					finished_count++;
+				}
 			}
+			const size_t articles(is.article_count());
+			const size_t aps(articles / i);
+			std::cout << is.article_count() << " articles indexed" 
+					  << " (~" << aps << "/s)" 
+					  << std::endl;
+			if (finished_count >= threads.size()) {
+				break;
+			}
+			sleep(1);
 		}
-		const size_t articles(is.article_count());
-		const size_t aps(articles / i);
-		std::cout << is.article_count() << " articles indexed" 
-		          << " (~" << aps << "/s)" 
-		          << std::endl;
-		if (finished_count >= threads.size()) {
-			break;
+		std::cout << is.term_count() << " terms indexed" << std::endl;
+		for (thit it(threads.begin()); it != threads.end(); ++it) {
+			(*it)->join();
+			delete *it;
 		}
-		sleep(1);
+		std::cout << "finalizing" << std::endl;
+		is.finalize();
+		std::cout << "merging" << std::endl;
+		merge(std::string(argv[2]) + ".hdr", argv[2]);
+	} catch (const std::runtime_error& ex) {
+		std::cerr << ex.what() << std::endl;
+		rc = -1;
 	}
-	std::cout << is.term_count() << " terms indexed" << std::endl;
-	for (thit it(threads.begin()); it != threads.end(); ++it) {
-		(*it)->join();
-		delete *it;
-	}
-	std::cout << "finalizing" << std::endl;
-	is.finalize();
-	std::cout << "merging" << std::endl;
-	merge(std::string(argv[2]) + ".hdr", argv[2]);
-	return 0;
+	return rc;
 }
