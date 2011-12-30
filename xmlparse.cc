@@ -31,7 +31,7 @@ stream::~stream()
 }
 
 #define MAX_READ_BUF 32768
-bool stream::read_until(const std::string& tok, readfunc2 f, void *arg)
+bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 {
 	const size_t tok_sz(tok.size());
 	std::ifstream::pos_type start_pos(m_f.tellg()), end_pos(m_f.tellg());
