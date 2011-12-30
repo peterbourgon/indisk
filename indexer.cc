@@ -11,11 +11,11 @@
 
 static bool index_article(stream& s, index_state& is)
 {
-	if (!s.read_until("<title>", NULL, NULL)) {
+	if (!s.read_until("<title>", true, NULL, NULL)) {
 		return false;
 	}
 	std::string title;
-	if (!s.read_until("<", parse_title, &title)) {
+	if (!s.read_until("<", false, parse_title, &title)) {
 		return false;
 	}
 	if (title.empty()) {
@@ -23,22 +23,22 @@ static bool index_article(stream& s, index_state& is)
 	}
 	assert(title.find(END_DELIM) == std::string::npos);
 	//std::cout << "parsed title: " << title << std::endl;
-	if (!s.read_until("<contributor>", NULL, NULL)) {
+	if (!s.read_until("<contributor>", true, NULL, NULL)) {
 		return false;
 	}
 	std::string contrib;
-	if (!s.read_until("</contributor>", parse_contrib, &contrib)) {
+	if (!s.read_until("</contributor>", false, parse_contrib, &contrib)) {
 		return false;
 	}
 	//std::cout << "parsed contributor: " << contrib << std::endl;
-	if (!s.read_until("<text", NULL, NULL)) {
+	if (!s.read_until("<text", true, NULL, NULL)) {
 		return false;
 	}
-	if (!s.read_until(">", NULL, NULL)) {
+	if (!s.read_until(">", true, NULL, NULL)) {
 		return false;
 	}
 	parse_text_context ctx(title, is);
-	if (!s.read_until("</text", parse_text, &ctx)) {
+	if (!s.read_until("</text", false, parse_text, &ctx)) {
 		return false;
 	}
 	return true;
@@ -106,7 +106,7 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	stream s(xml_filename, 0, 0);
 	const uint64_t sz(s.size());
 	std::ifstream::pos_type last_end(s.tell());
-	std::cout << xml_filename << ": " << last_end << " offsets" << std::endl;
+	std::cout << xml_filename << ": " << sz << " offsets" << std::endl;
 	
 	// split up the file into roughly equal sections
 	// based on the <title> delimiter
@@ -115,19 +115,22 @@ split_pairs get_split_positions(const std::string& xml_filename)
 		std::ifstream::pos_type begin_pos(last_end);
 		s.seek(begin_pos);
 		// look for the next <title>
-		s.read_until("<title>", NULL, NULL);
+		s.read_until("<title>", false, NULL, NULL);
+		assert(s.read(7) == "<title>");
+		assert(s.read(7) == "<title>");
 		// we will make one partition from here
 		begin_pos = s.tell();
 		// move to where we think the next title may be
 		std::ifstream::pos_type end_pos( (sz / ncpu) * (i+1) );
 		s.seek(end_pos);
 		// look for the next <title>
-		s.read_until("<title>", NULL, NULL);
+		s.read_until("<title>", false, NULL, NULL);
+		assert(s.read(7) == "<title>");
 		assert(s.tell() > 0);
 		// we will make that partition end here
 		end_pos = s.tell();
 		// insert the partition
-		p.push_back(std::make_pair(begin_pos, end_pos));
+		p.push_back(std::make_pair(last_end, end_pos));
 		// and mark where we begin the next search
 		last_end = end_pos;
 	}

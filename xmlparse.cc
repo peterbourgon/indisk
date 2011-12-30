@@ -5,13 +5,11 @@
 #include <iostream>
 #include "xmlparse.hh"
 
-stream::stream(
-		const std::string& filename,
-		uint64_t from,
-		uint64_t to)
+stream::stream(const std::string& filename, uint64_t from, uint64_t to)
 : m_f(filename.c_str(), std::ios::in & std::ios::binary)
 , m_from(from)
 , m_to(to)
+, m_finished(false)
 {
 	if (!m_f.good()) {
 		throw std::runtime_error("bad input file");
@@ -30,8 +28,7 @@ stream::~stream()
 	m_f.close();
 }
 
-#define MAX_READ_BUF 32768
-bool stream::read_until(const std::string& tok, readfunc f, void *arg)
+bool stream::read_until(const std::string& tok, bool consume, readfunc f, void *arg)
 {
 	const size_t tok_sz(tok.size());
 	std::ifstream::pos_type start_pos(m_f.tellg()), end_pos(m_f.tellg());
@@ -41,9 +38,9 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 		std::getline(m_f, line);
 		std::string::size_type loc(line.find(tok));
 		if (loc != std::string::npos) {
-			const int backup( -(line.size() - loc - tok_sz + 1) );
+			int backup( -(line.size() - loc + 1) );
 			m_f.seekg(backup, m_f.cur);
-			end_pos = m_f.tellg();
+			assert(read(tok_sz) == tok);
 			found = true;
 		}
 		m_finished = static_cast<uint64_t>(m_f.tellg()) >= m_to;
@@ -51,12 +48,24 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 	if (!found) {
 		return false;
 	}
+	if (consume) {
+		m_f.seekg(tok_sz, m_f.cur);
+	}
+	end_pos = m_f.tellg();
+	if (end_pos == start_pos) {
+		// found immediately; no data to push anywhere
+		return true;
+	}
 	if (f) {
-		
-		const uint64_t len(end_pos - start_pos - tok_sz);
-		f(m_f, start_pos, len, arg);
-		m_f.seekg(tok_sz, std::ifstream::cur);
+		m_f.seekg(start_pos);
+		assert(m_f.good());
+		const size_t len(end_pos - start_pos);
+		char *buf(reinterpret_cast<char *>(malloc(len)));
+		m_f.read(buf, len);
+		assert(m_f.good());
 		assert(m_f.tellg() == end_pos);
+		f(buf, len, arg);
+		free(buf);
 	}
 	return true;
 }
@@ -139,7 +148,7 @@ static bool lookahead(const char *buf, size_t& i, size_t len)
 }
 
 #define MAX_TITLE_SIZE (1024) // 1KB
-void parse_title(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
+void parse_title(char *buf, size_t len, void *arg)
 {
 	std::string *s(reinterpret_cast<std::string *>(arg));
 	if (!s) {
@@ -147,16 +156,6 @@ void parse_title(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 	}
 	if (len > MAX_TITLE_SIZE) {
 		throw std::runtime_error("parse_title buffer too big");
-	}
-	f.seekg(offset);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_title seek failed");
-	}
-	// TODO from here down, it could be optimized
-	char *buf(static_cast<char *>(malloc(len)));
-	f.read(buf, len);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_title read failed");
 	}
 	std::string title;
 	title.reserve(len);
@@ -168,12 +167,11 @@ void parse_title(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 		}
 		title += c;
 	}
-	free(buf);
 	title.swap(*s);
 }
 
 #define MAX_CONTRIB_SIZE (1024 * 1024) // 1MB
-void parse_contrib(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
+void parse_contrib(char *buf, size_t len, void *arg)
 {
 	std::string *s(reinterpret_cast<std::string *>(arg));
 	if (!s) {
@@ -181,16 +179,6 @@ void parse_contrib(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 	}
 	if (len > MAX_CONTRIB_SIZE) {
 		throw std::runtime_error("parse_contrib buffer too big");
-	}
-	f.seekg(offset);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_contrib seek failed");
-	}
-	// TODO from here down, it could be optimized
-	char *buf(static_cast<char *>(malloc(len)));
-	f.read(buf, len);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_contrib read failed");
 	}
 	static const std::string USERNAME_BEGIN("<username>");
 	static const std::string USERNAME_END("</username>");
@@ -204,7 +192,6 @@ void parse_contrib(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 			*s = std::string(buf+from, i-from-USERNAME_END_SZ);
 		}
 	}
-	free(buf);
 }
 
 static bool add_to(char c, std::string& term)
@@ -263,7 +250,7 @@ static bool term_passes(const std::string& term)
 
 #define MAX_TEXT_SIZE (1024*1024*100) // 100 MB
 #define TERM_RESERVE  64
-void parse_text(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
+void parse_text(char *buf, size_t len, void *arg)
 {
 	parse_text_context *ctx(reinterpret_cast<parse_text_context *>(arg));
 	if (!ctx) {
@@ -274,16 +261,6 @@ void parse_text(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 		throw std::runtime_error("parse_text buffer too big");
 	}
 	
-	f.seekg(offset);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_text seek failed");
-	}
-	// TODO from here down, it could be optimized
-	char *buf(static_cast<char *>(malloc(len)));
-	f.read(buf, len);
-	if (f.rdstate() && f.failbit) {
-		throw std::runtime_error("parse_text read failed");
-	}
 	std::string term;
 	term.reserve(TERM_RESERVE);
 	int square_stack(0);
@@ -337,5 +314,4 @@ void parse_text(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 			term_complete = false;
 		}
 	}
-	free(buf);
 }
