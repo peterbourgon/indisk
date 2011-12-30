@@ -25,11 +25,27 @@ stream::stream(
 	fseek(m_f, m_from_pos, SEEK_SET);
 }
 
+stream2::stream2(
+		const std::string& filename,
+		uint64_t from,
+		uint64_t to)
+: m_f(filename.c_str(), std::ios::binary)
+, m_from(from)
+, m_to(to)
+{
+	m_f.seekg(from);
+}
+
 stream::~stream()
 {
 	if (m_f) {
 		fclose(m_f);
 	}
+}
+
+stream2::~stream2()
+{
+	m_f.close();
 }
 
 bool stream::read_until(const std::string& tok, readfunc f, void *arg)
@@ -80,6 +96,52 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 		f(m_f, start_offset, len, arg);
 		fseek(m_f, tmax, SEEK_CUR);
 		assert(ftell(m_f) == static_cast<long>(end_offset));
+	}
+	
+	return true;
+}
+
+#define MAX_READ_BUF 32768
+bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
+{
+	//char *buf(reinterpret_cast<char *>(malloc(m_bufsz)));
+	//size_t total_readbytes(0), total_seekbytes(0);
+	size_t t(0), tmax(tok.size());
+	std::ifstream::pos_type start_pos(m_f.tellg()), pos(m_f.tellg());
+	
+	// read MAX_READ_BUF-sized chunks from the input stream
+	// if t==0
+	//  you may read as much as you want
+	//  if you read MAX_READ_BUF without a hit, just keep going
+	// else
+	//  you may only read 1 character
+	//  if it passes, advance t by 1 to tmax and loop
+	char buf[MAX_READ_BUF];
+	bool found(false);
+	while (!found && static_cast<uint64_t>(m_f.tellg()) < m_to) {
+		const uint64_t remaining(m_to - m_f.tellg());
+		const size_t n(remaining < MAX_READ_BUF ? remaining : MAX_READ_BUF);
+		const size_t n0(t == 0 ? n : 1);
+		m_f.getline(buf, n0, tok[t]);
+		const bool no_hit(m_f.rdstate() & m_f.failbit);
+		if (!no_hit) {
+			++t;
+			if (t >= tmax) {
+				found = true;
+			}
+		}
+	}
+	if (!found) {
+		m_finished = static_cast<uint64_t>(m_f.tellg()) >= m_to;
+		return false;
+	}
+	
+	if (f) {
+		const uint64_t end_pos(m_f.tellg());
+		const uint64_t len(end_pos - start_pos - tmax);
+		f(m_f, start_pos, len, arg);
+		m_f.seekg(tmax, std::ifstream::cur);
+		assert(static_cast<uint64_t>(m_f.tellg()) == end_pos);
 	}
 	
 	return true;

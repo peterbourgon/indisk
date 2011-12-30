@@ -93,7 +93,7 @@ private:
 	bool m_finished;
 };
 
-typedef std::pair<size_t, size_t> split_pair;
+typedef std::pair<uint64_t, uint64_t> split_pair;
 typedef std::vector<split_pair> split_pairs;
 
 split_pairs get_split_positions(const std::string& xml_filename)
@@ -102,21 +102,21 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	const size_t ncpu(get_cpus());
 	std::cout << "indexing on " << ncpu << " threads" << std::endl;
 	stream s(xml_filename);
-	const size_t sz(s.size());
-	size_t last_end(0);
+	const uint64_t sz(s.size());
+	uint64_t last_end(0);
 	
 	// split up the file into roughly equal sections
 	// based on the <title> delimiter
 	for (size_t i(0); i < ncpu-1; ++i) {
 		// begin where we left off
-		size_t begin_pos(last_end);
+		uint64_t begin_pos(last_end);
 		s.seek(begin_pos);
 		// look for the next <title>
 		s.read_until("<title>", NULL, NULL);
 		// we will make one partition from here
 		begin_pos = s.tell();
 		// move to where we think the next title may be
-		size_t end_pos( (sz / ncpu) * (i+1) );
+		uint64_t end_pos( (sz / ncpu) * (i+1) );
 		s.seek(end_pos);
 		// look for the next <title>
 		s.read_until("<title>", NULL, NULL);

@@ -9,6 +9,7 @@
 #define DEFAULT_READ_BUFFER_SIZE (256)
 
 typedef void (*readfunc)(FILE *, uint32_t, size_t, void *);
+typedef void (*readfunc2)(std::ifstream&, uint64_t, uint64_t, void *);
 
 class stream
 {
@@ -30,6 +31,23 @@ private:
 	const size_t m_from_pos;
 	const size_t m_to_pos;
 	const size_t m_bufsz;
+	bool m_finished;
+};
+
+class stream2
+{
+public:
+	stream2(
+			const std::string& filename,
+			uint64_t from,
+			uint64_t to);
+	~stream2();
+	bool read_until(const std::string& tok, readfunc2 f, void *arg);
+	
+private:
+	std::ifstream m_f;
+	uint64_t m_from;
+	uint64_t m_to;
 	bool m_finished;
 };
 
