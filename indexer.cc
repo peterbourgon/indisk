@@ -11,6 +11,7 @@
 
 static bool index_article(stream2& s, index_state& is)
 {
+	std::cout << "index_article @" << s.tell() << std::endl;
 	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
 	}
@@ -100,7 +101,9 @@ split_pairs get_split_positions(const std::string& xml_filename)
 {
 	split_pairs p;
 	const size_t ncpu(get_cpus());
-	std::cout << "indexing on " << ncpu << " threads" << std::endl;
+	std::cout << "indexing on " << ncpu
+	          << " thread" << (ncpu == 1 ? "" : "s")
+	          << std::endl;
 	stream2 s(xml_filename, 0, 0);
 	const uint64_t sz(s.size());
 	uint64_t last_end(0);

@@ -107,21 +107,18 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 #define MAX_READ_BUF 32768
 bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 {
-	size_t t(0), tmax(tok.size());
-	std::ifstream::pos_type start_pos(m_f.tellg()), pos(m_f.tellg());
-	char buf[MAX_READ_BUF];
+	const size_t tok_sz(tok.size());
+	std::ifstream::pos_type start_pos(m_f.tellg()), end_pos(m_f.tellg());
 	bool found(false);
+	std::string line;
 	while (!found && !m_finished) {
-		const uint64_t remaining(m_to - m_f.tellg());
-		const size_t n(remaining < MAX_READ_BUF ? remaining : MAX_READ_BUF);
-		const size_t n0(t == 0 ? n : 1);
-		m_f.getline(buf, n0, tok[t]);
-		const bool no_hit(m_f.rdstate() & m_f.failbit);
-		if (!no_hit) {
-			++t;
-			if (t >= tmax) {
-				found = true;
-			}
+		std::getline(m_f, line);
+		std::string::size_type loc(line.find(tok));
+		if (loc != std::string::npos) {
+			const int backup( -(line.size() - loc - tok_sz + 1) );
+			m_f.seekg(backup, m_f.cur);
+			end_pos = m_f.tellg();
+			found = true;
 		}
 		m_finished = static_cast<uint64_t>(m_f.tellg()) >= m_to;
 	}
@@ -129,11 +126,11 @@ bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 		return false;
 	}
 	if (f) {
-		const uint64_t end_pos(m_f.tellg());
-		const uint64_t len(end_pos - start_pos - tmax);
+		
+		const uint64_t len(end_pos - start_pos - tok_sz);
 		f(m_f, start_pos, len, arg);
-		m_f.seekg(tmax, std::ifstream::cur);
-		assert(static_cast<uint64_t>(m_f.tellg()) == end_pos);
+		m_f.seekg(tok_sz, std::ifstream::cur);
+		assert(m_f.tellg() == end_pos);
 	}
 	return true;
 }
