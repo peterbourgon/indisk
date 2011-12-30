@@ -5,7 +5,7 @@
 #include <iostream>
 #include "xmlparse.hh"
 
-stream2::stream2(
+stream::stream(
 		const std::string& filename,
 		uint64_t from,
 		uint64_t to)
@@ -25,13 +25,13 @@ stream2::stream2(
 	assert(m_f.good());
 }
 
-stream2::~stream2()
+stream::~stream()
 {
 	m_f.close();
 }
 
 #define MAX_READ_BUF 32768
-bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
+bool stream::read_until(const std::string& tok, readfunc2 f, void *arg)
 {
 	const size_t tok_sz(tok.size());
 	std::ifstream::pos_type start_pos(m_f.tellg()), end_pos(m_f.tellg());
@@ -61,7 +61,7 @@ bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 	return true;
 }
 
-uint64_t stream2::size()
+uint64_t stream::size()
 {
 	std::ifstream::pos_type start_pos(m_f.tellg());
 	m_f.seekg(0, std::ios::end);

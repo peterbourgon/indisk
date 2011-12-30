@@ -9,7 +9,7 @@
 #include "index_state.hh"
 #include "definitions.hh"
 
-static bool index_article(stream2& s, index_state& is)
+static bool index_article(stream& s, index_state& is)
 {
 	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
@@ -88,7 +88,7 @@ public:
 	}
 	
 private:
-	stream2 m_stream;
+	stream m_stream;
 	index_state& m_is;
 	bool m_finished;
 };
@@ -103,7 +103,7 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	std::cout << "indexing on " << ncpu
 	          << " thread" << (ncpu == 1 ? "" : "s")
 	          << std::endl;
-	stream2 s(xml_filename, 0, 0);
+	stream s(xml_filename, 0, 0);
 	const uint64_t sz(s.size());
 	std::ifstream::pos_type last_end(s.tell());
 	std::cout << xml_filename << ": " << last_end << " offsets" << std::endl;

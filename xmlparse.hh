@@ -11,14 +11,14 @@
 typedef void (*readfunc)(FILE *, uint32_t, size_t, void *);
 typedef void (*readfunc2)(std::ifstream&, uint64_t, uint64_t, void *);
 
-class stream2
+class stream
 {
 public:
-	stream2(
+	stream(
 			const std::string& filename,
 			uint64_t from,
 			uint64_t to);
-	~stream2();
+	~stream();
 	bool read_until(const std::string& tok, readfunc2 f, void *arg);
 	uint64_t size();
 	
