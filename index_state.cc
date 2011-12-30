@@ -6,14 +6,14 @@
 #include "index_state.hh"
 
 index_state::index_state(const std::string index_filename)
-: ofs_header("index.header", std::ios::binary)
+: ofs_header(std::string(index_filename + ".hdr").c_str(), std::ios::binary)
 , ofs_index(index_filename.c_str(), std::ios::binary)
 , finalized(false)
 , aid(1)
 , tid(1)
 {
 	if (!ofs_header.good()) {
-		throw std::runtime_error("index.header: bad file");
+		throw std::runtime_error("index header: bad file");
 	}
 	if (!ofs_index.good()) {
 		throw std::runtime_error("bad index file");

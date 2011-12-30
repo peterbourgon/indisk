@@ -177,6 +177,6 @@ int main(int argc, char *argv[])
 	std::cout << "finalizing" << std::endl;
 	is.finalize();
 	std::cout << "merging" << std::endl;
-	merge("index.header", argv[2]);
+	merge(std::string(argv[2]) + ".hdr", argv[2]);
 	return 0;
 }
