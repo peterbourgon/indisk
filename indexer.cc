@@ -9,7 +9,7 @@
 #include "index_state.hh"
 #include "definitions.hh"
 
-bool index_article(stream& s, index_state& is)
+static bool index_article(stream2& s, index_state& is)
 {
 	if (!s.read_until("<title>", NULL, NULL)) {
 		return false;
@@ -64,8 +64,8 @@ class index_thread : public synchronized_threadbase
 public:
 	index_thread(
 			const std::string& filename,
-			size_t start_pos,
-			size_t end_pos,
+			uint64_t start_pos,
+			uint64_t end_pos,
 			index_state& is)
 	: m_stream(filename, start_pos, end_pos)
 	, m_is(is)
@@ -88,7 +88,7 @@ public:
 	}
 	
 private:
-	stream m_stream;
+	stream2 m_stream;
 	index_state& m_is;
 	bool m_finished;
 };
@@ -101,7 +101,7 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	split_pairs p;
 	const size_t ncpu(get_cpus());
 	std::cout << "indexing on " << ncpu << " threads" << std::endl;
-	stream s(xml_filename);
+	stream2 s(xml_filename, 0, 0);
 	const uint64_t sz(s.size());
 	uint64_t last_end(0);
 	

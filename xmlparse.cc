@@ -34,6 +34,9 @@ stream2::stream2(
 , m_to(to)
 {
 	m_f.seekg(from);
+	if (m_to <= 0) {
+		m_to = size();
+	}
 }
 
 stream::~stream()
@@ -104,21 +107,11 @@ bool stream::read_until(const std::string& tok, readfunc f, void *arg)
 #define MAX_READ_BUF 32768
 bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 {
-	//char *buf(reinterpret_cast<char *>(malloc(m_bufsz)));
-	//size_t total_readbytes(0), total_seekbytes(0);
 	size_t t(0), tmax(tok.size());
 	std::ifstream::pos_type start_pos(m_f.tellg()), pos(m_f.tellg());
-	
-	// read MAX_READ_BUF-sized chunks from the input stream
-	// if t==0
-	//  you may read as much as you want
-	//  if you read MAX_READ_BUF without a hit, just keep going
-	// else
-	//  you may only read 1 character
-	//  if it passes, advance t by 1 to tmax and loop
 	char buf[MAX_READ_BUF];
 	bool found(false);
-	while (!found && static_cast<uint64_t>(m_f.tellg()) < m_to) {
+	while (!found && !m_finished) {
 		const uint64_t remaining(m_to - m_f.tellg());
 		const size_t n(remaining < MAX_READ_BUF ? remaining : MAX_READ_BUF);
 		const size_t n0(t == 0 ? n : 1);
@@ -130,12 +123,11 @@ bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 				found = true;
 			}
 		}
+		m_finished = static_cast<uint64_t>(m_f.tellg()) >= m_to;
 	}
 	if (!found) {
-		m_finished = static_cast<uint64_t>(m_f.tellg()) >= m_to;
 		return false;
 	}
-	
 	if (f) {
 		const uint64_t end_pos(m_f.tellg());
 		const uint64_t len(end_pos - start_pos - tmax);
@@ -143,7 +135,6 @@ bool stream2::read_until(const std::string& tok, readfunc2 f, void *arg)
 		m_f.seekg(tmax, std::ifstream::cur);
 		assert(static_cast<uint64_t>(m_f.tellg()) == end_pos);
 	}
-	
 	return true;
 }
 
@@ -169,6 +160,15 @@ size_t stream::size()
 	}
 	assert(ftell(m_f) == static_cast<long>(start_offset));
 	return end_offset;
+}
+
+uint64_t stream2::size()
+{
+	std::ifstream::pos_type start_pos(m_f.tellg());
+	m_f.seekg(0, std::ios::end);
+	std::ifstream::pos_type end_pos(m_f.tellg());
+	m_f.seekg(start_pos);
+	return end_pos;
 }
 
 void stream::seek(uint32_t pos)
@@ -252,7 +252,7 @@ static bool lookahead(const char *buf, size_t& i, size_t len)
 }
 
 #define MAX_TITLE_SIZE (1024) // 1KB
-void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
+void parse_title(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 {
 	std::string *s(reinterpret_cast<std::string *>(arg));
 	if (!s) {
@@ -261,12 +261,15 @@ void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (len > MAX_TITLE_SIZE) {
 		throw std::runtime_error("parse_title buffer too big");
 	}
-	if (fseek(f, offset, SEEK_SET) != 0) {
+	f.seekg(offset);
+	if (f.rdstate() && f.failbit) {
 		throw std::runtime_error("parse_title seek failed");
 	}
+	// TODO from here down, it could be optimized
 	char *buf(static_cast<char *>(malloc(len)));
-	if (fread(buf, 1, len, f) != len) {
-		throw std::runtime_error("parse_title read too short");
+	f.read(buf, len);
+	if (f.rdstate() && f.failbit) {
+		throw std::runtime_error("parse_title read failed");
 	}
 	std::string title;
 	title.reserve(len);
@@ -283,7 +286,7 @@ void parse_title(FILE *f, uint32_t offset, size_t len, void *arg)
 }
 
 #define MAX_CONTRIB_SIZE (1024 * 1024) // 1MB
-void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
+void parse_contrib(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 {
 	std::string *s(reinterpret_cast<std::string *>(arg));
 	if (!s) {
@@ -292,12 +295,15 @@ void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (len > MAX_CONTRIB_SIZE) {
 		throw std::runtime_error("parse_contrib buffer too big");
 	}
-	if (fseek(f, offset, SEEK_SET) != 0) {
+	f.seekg(offset);
+	if (f.rdstate() && f.failbit) {
 		throw std::runtime_error("parse_contrib seek failed");
 	}
+	// TODO from here down, it could be optimized
 	char *buf(static_cast<char *>(malloc(len)));
-	if (fread(buf, 1, len, f) != len) {
-		throw std::runtime_error("parse_contrib read too short");
+	f.read(buf, len);
+	if (f.rdstate() && f.failbit) {
+		throw std::runtime_error("parse_contrib read failed");
 	}
 	static const std::string USERNAME_BEGIN("<username>");
 	static const std::string USERNAME_END("</username>");
@@ -370,7 +376,7 @@ static bool term_passes(const std::string& term)
 
 #define MAX_TEXT_SIZE (1024*1024*100) // 100 MB
 #define TERM_RESERVE  64
-void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
+void parse_text(std::ifstream& f, uint64_t offset, uint64_t len, void *arg)
 {
 	parse_text_context *ctx(reinterpret_cast<parse_text_context *>(arg));
 	if (!ctx) {
@@ -380,12 +386,16 @@ void parse_text(FILE *f, uint32_t offset, size_t len, void *arg)
 	if (len > MAX_TEXT_SIZE) {
 		throw std::runtime_error("parse_text buffer too big");
 	}
-	if (fseek(f, offset, SEEK_SET) != 0) {
+	
+	f.seekg(offset);
+	if (f.rdstate() && f.failbit) {
 		throw std::runtime_error("parse_text seek failed");
 	}
+	// TODO from here down, it could be optimized
 	char *buf(static_cast<char *>(malloc(len)));
-	if (fread(buf, 1, len, f) != len) {
-		throw std::runtime_error("parse_text read too short");
+	f.read(buf, len);
+	if (f.rdstate() && f.failbit) {
+		throw std::runtime_error("parse_text read failed");
 	}
 	std::string term;
 	term.reserve(TERM_RESERVE);

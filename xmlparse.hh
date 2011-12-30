@@ -43,6 +43,10 @@ public:
 			uint64_t to);
 	~stream2();
 	bool read_until(const std::string& tok, readfunc2 f, void *arg);
+	uint64_t size();
+	
+	std::ifstream::pos_type tell() { return m_f.tellg(); }
+	void seek(const std::ifstream::pos_type& pos) { m_f.seekg(pos); }
 	
 private:
 	std::ifstream m_f;
@@ -65,8 +69,9 @@ struct parse_text_context {
 	index_state& is;
 };
 
-void parse_title(FILE *f, uint32_t offset, size_t len, void *arg);
-void parse_contrib(FILE *f, uint32_t offset, size_t len, void *arg);
-void parse_text(FILE *f, uint32_t offset, size_t len, void *arg);
+//std::ifstream&, uint64_t, uint64_t, void *
+void parse_title(std::ifstream& f, uint64_t offset, uint64_t len, void *arg);
+void parse_contrib(std::ifstream& f, uint64_t offset, uint64_t len, void *arg);
+void parse_text(std::ifstream& f, uint64_t offset, uint64_t len, void *arg);
 
 #endif
