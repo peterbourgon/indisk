@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -g
+CFLAGS = -Wall -Werror -pedantic -O3
 
 LIB = -lpthread
 
@@ -30,6 +30,9 @@ indexer: $(OBJ) indexer.cc
 
 reader: $(OBJ) reader.cc
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^
+
+debug_indexer:
+	g++ -ggdb -o indexer definitions.cc xmlparse.cc index_state.cc thread.cc indexer.cc
 
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:

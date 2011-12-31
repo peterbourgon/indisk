@@ -11,7 +11,7 @@ void read(std::ifstream& ifs, T& t)
 	ifs.read(reinterpret_cast<char *>(&t), sizeof(T));
 }
 
-#define MAX_SEARCH_RESULTS 25
+#define MAX_SEARCH_RESULTS 10
 
 struct index_repr {
 	index_repr(const std::string& filename)
@@ -122,7 +122,7 @@ struct index_repr {
 		std::ifstream& ifs(*ifs_ptr);
 		assert(ifs.good());
 		const header_offset_vector& hov(tgt->second);
-		std::cout << term << ": " << hov.size() << " offset(s)" << std::endl;
+		//std::cout << term << ": " << hov.size() << " offset(s)" << std::endl;
 		typedef header_offset_vector::const_iterator hovcit;
 		std::vector<uint32_t> articleids;
 		char c(0);
@@ -142,7 +142,7 @@ struct index_repr {
 			uint32_t termid(0);
 			read<uint32_t>(ifs, termid);
 			assert(termid > 0);
-			std::cout << term << " id " << termid << std::endl;
+			//std::cout << term << " id " << termid << std::endl;
 			uint32_t articleid(UINT32_MAX);
 			while (true) {
 				read<uint32_t>(ifs, articleid);
@@ -232,7 +232,11 @@ void print_results(
 	for (srscit it(intermediate.begin()); it != intermediate.end(); ++it) {
 		merge(final, *it);
 	}
+	// sort and cut
 	final.sort();
+	if (final.top.size() > MAX_SEARCH_RESULTS) {
+		final.top.erase(final.top.begin() + MAX_SEARCH_RESULTS, final.top.end());
+	}
 	// print
 	std::cout << term << ": " << final.total << " hits" << std::endl;
 	typedef std::vector<search_result>::const_iterator srit;

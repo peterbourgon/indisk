@@ -20,8 +20,11 @@ public:
 	tid_aids_map inverted_index;
 	tid_offsets_map tid_offsets;
 	
+	std::string index_file;
+	std::string header_file;
 	std::ofstream ofs_header;
 	std::ofstream ofs_index;
+	
 	bool finalized;
 	
 private:

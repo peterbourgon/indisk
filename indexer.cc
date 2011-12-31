@@ -63,21 +63,33 @@ class index_thread : public synchronized_threadbase
 {
 public:
 	index_thread(
-			const std::string& filename,
+			const std::string& xml_filename,
+			const std::string& idx_filename,
 			uint64_t start_pos,
-			uint64_t end_pos,
-			index_state& is)
-	: m_stream(filename, start_pos, end_pos)
-	, m_is(is)
+			uint64_t end_pos)
+	: m_stream(xml_filename, start_pos, end_pos)
+	, m_is(new index_state(idx_filename))
 	, m_finished(false)
 	{
 		//
 	}
 	
+	~index_thread()
+	{
+		if (m_is) {
+			delete m_is;
+		}
+	}
+	
 	virtual void run()
 	{
-		while (index_article(m_stream, m_is));
+		while (index_article(m_stream, *m_is));
+		std::cout << "index thread finalizing" << std::endl;
+		m_is->finalize();
+		std::cout << "index thread merging" << std::endl;
+		merge(m_is->header_file, m_is->index_file);
 		scoped_lock sync(monitor_mutex);
+		std::cout << "index thread finished" << std::endl;
 		m_finished = true;
 	}
 	
@@ -89,7 +101,7 @@ public:
 	
 private:
 	stream m_stream;
-	index_state& m_is;
+	index_state *m_is;
 	bool m_finished;
 };
 
@@ -148,15 +160,17 @@ int main(int argc, char *argv[])
 	}
 	int rc(0);
 	try {
-		index_state is(argv[2]);
 		split_pairs p(get_split_positions(argv[1]));
+		size_t id(1);
 		std::vector<index_thread *> threads;
 		typedef std::vector<index_thread *>::iterator thit;
 		for (split_pairs::const_iterator it(p.begin()); it != p.end(); ++it) {
 			std::cout << "partition: "
-					  << it->first << '-' << it->second
-					  << std::endl;
-			index_thread *t(new index_thread(argv[1], it->first, it->second, is));
+			          << it->first << '-' << it->second
+			          << std::endl;
+			std::ostringstream oss;
+			oss << argv[2] << "." << id++;
+			index_thread *t(new index_thread(argv[1], oss.str(), it->first, it->second));
 			t->start();
 			threads.push_back(t);
 		}
@@ -167,25 +181,15 @@ int main(int argc, char *argv[])
 					finished_count++;
 				}
 			}
-			const size_t articles(is.article_count());
-			const size_t aps(articles / i);
-			std::cout << is.article_count() << " articles indexed" 
-					  << " (~" << aps << "/s)" 
-					  << std::endl;
 			if (finished_count >= threads.size()) {
 				break;
 			}
 			sleep(1);
 		}
-		std::cout << is.term_count() << " terms indexed" << std::endl;
 		for (thit it(threads.begin()); it != threads.end(); ++it) {
 			(*it)->join();
 			delete *it;
 		}
-		std::cout << "finalizing" << std::endl;
-		is.finalize();
-		std::cout << "merging" << std::endl;
-		merge(std::string(argv[2]) + ".hdr", argv[2]);
 	} catch (const std::runtime_error& ex) {
 		std::cerr << ex.what() << std::endl;
 		rc = -1;
