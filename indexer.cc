@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
-#include "definitions.hh"
+#include "def.hh"
 #include "xml.hh"
 #include "idx.hh"
 

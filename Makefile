@@ -5,7 +5,7 @@ CFLAGS = -Wall -Werror -pedantic -O3
 LIB = -lpthread
 
 SRC = \
-	definitions.cc \
+	def.cc \
 	xml.cc \
 	idx.cc \
 	thread.cc \
@@ -34,7 +34,7 @@ reader: $(OBJ) reader.cc
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
 debug_indexer:
-	g++ -ggdb -o indexer definitions.cc xml.cc idx.cc thread.cc indexer.cc
+	g++ -ggdb -o indexer def.cc xml.cc idx.cc thread.cc indexer.cc
 
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:

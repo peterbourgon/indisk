@@ -3,7 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <map>
-#include "definitions.hh"
+#include "def.hh"
 
 template<typename T>
 void read(std::ifstream& ifs, T& t)

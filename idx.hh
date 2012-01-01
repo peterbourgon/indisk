@@ -3,7 +3,7 @@
 
 #include <fstream>
 #include "thread.hh"
-#include "definitions.hh"
+#include "def.hh"
 #include "xml.hh"
 
 // The index_st accepts index() calls, and stores those associations
