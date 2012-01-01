@@ -17,7 +17,7 @@ TST = \
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
-all: indexer reader
+all: indexer reader $(TST)
 
 test: $(TST)
 
