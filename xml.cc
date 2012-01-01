@@ -79,9 +79,15 @@ bool xstream::read_until(const std::string& tok, bool consume, rfunc rf, void *a
 			int backup( -(line.size() - loc + 1) );
 			f.seekg(backup, std::ifstream::cur);
 			assert(read(tok_sz) == tok);
-			found = true;
+			if (tell() < m_region.end) {
+				found = true;
+			}
 		}
 		m_finished = tell() >= m_region.end;
+	}
+	if (m_finished && tell() > m_region.end) {
+		int backup( m_region.end - tell() );
+		f.seekg(backup, std::ifstream::cur);
 	}
 	if (!found) {
 		return false;
@@ -112,7 +118,6 @@ bool xstream::seek(const stream_pos& pos)
 {
 	assert(m_fptr);
 	if (pos < m_region.begin || pos > m_region.end) {
-		assert(false);
 		return false;
 	}
 	m_fptr->seekg(pos);

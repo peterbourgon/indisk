@@ -1,21 +1,22 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -O3
+CFLAGS = -Wall -Werror -pedantic -ggdb
 
 LIB = -lpthread
 
 SRC = \
 	definitions.cc \
-	xmlparse.cc \
-	index_state.cc \
+	xml.cc \
 	thread.cc \
 
 TST = \
+	test_stream \
 
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
-all: indexer reader
+# all: indexer reader
+all: $(OBJ)
 
 test: $(TST)
 
