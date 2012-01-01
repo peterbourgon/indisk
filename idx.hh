@@ -106,6 +106,7 @@ public:
 	const index_st& get_index_st() const { return m_idx_st; }
 	
 private:
+	bool m_started;
 	xstream m_s;
 	index_st m_idx_st;
 	size_t m_article_count;

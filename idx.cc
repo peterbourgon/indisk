@@ -264,7 +264,8 @@ idx_thread::idx_thread(
 		const std::string& xml_filename,
 		const region& r,
 		const std::string& idx_filename)
-: m_s(xml_filename, r)
+: m_started(false)
+, m_s(xml_filename, r)
 , m_idx_st(idx_filename)
 , m_article_count(0)
 {
@@ -281,6 +282,7 @@ void idx_thread::run()
 	scoped_lock sync(monitor_mutex);
 	size_t unflushed_article_count(0);
 	synchronized_thread_running = true;
+	m_started = true;
 	while (synchronized_thread_running) {
 		sync.unlock();
 		index_result r(index_article(m_s, m_idx_st));
@@ -303,7 +305,7 @@ void idx_thread::run()
 bool idx_thread::finished() const
 {
 	scoped_lock sync(monitor_mutex);
-	return !synchronized_thread_running;
+	return m_started && !synchronized_thread_running;
 }
 
 size_t idx_thread::article_count() const
