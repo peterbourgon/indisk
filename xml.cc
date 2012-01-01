@@ -12,7 +12,7 @@ std::vector<region> regionize(const std::string& filename, size_t count)
 	}
 	std::vector<region> regions;
 	region full_region(0, 0);
-	xstream s(filename, full_region);
+	stream s(filename, full_region);
 	stream_pos sz(s.size());
 	stream_pos last_end(s.tell());
 	for (size_t i(0); i < count-1; ++i) {
@@ -41,7 +41,7 @@ std::vector<region> regionize(const std::string& filename, size_t count)
 	return regions;
 }
 
-xstream::xstream(const std::string& filename, const region& r)
+stream::stream(const std::string& filename, const region& r)
 : m_fptr(new std::ifstream(filename.c_str(), std::ios::in & std::ios::binary))
 , m_region(r)
 , m_finished(false)
@@ -57,7 +57,7 @@ xstream::xstream(const std::string& filename, const region& r)
 	}
 }
 
-xstream::~xstream()
+stream::~stream()
 {
 	if (m_fptr) {
 		m_fptr->close();
@@ -65,7 +65,7 @@ xstream::~xstream()
 	}
 }
 
-bool xstream::read_until(const std::string& tok, bool consume, rfunc rf, void *arg)
+bool stream::read_until(const std::string& tok, bool consume, rfunc rf, void *arg)
 {
 	assert(m_fptr);
 	std::ifstream& f(*m_fptr);
@@ -115,7 +115,7 @@ bool xstream::read_until(const std::string& tok, bool consume, rfunc rf, void *a
 	return true;
 }
 
-bool xstream::seek(const stream_pos& pos)
+bool stream::seek(const stream_pos& pos)
 {
 	assert(m_fptr);
 	if (pos < m_region.begin || pos > m_region.end) {
@@ -125,13 +125,13 @@ bool xstream::seek(const stream_pos& pos)
 	return m_fptr->good();
 }
 
-stream_pos xstream::tell()
+stream_pos stream::tell()
 {
 	assert(m_fptr);
 	return m_fptr->tellg();
 }
 
-stream_pos xstream::size()
+stream_pos stream::size()
 {
 	assert(m_fptr);
 	stream_pos start_pos(tell());
@@ -141,7 +141,7 @@ stream_pos xstream::size()
 	return end_pos;
 }
 
-std::string xstream::read(size_t n)
+std::string stream::read(size_t n)
 {
 	assert(m_fptr);
 	stream_pos start_pos(tell());

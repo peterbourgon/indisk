@@ -16,7 +16,7 @@ void ensure(bool condition, const std::string& file, int line)
 
 void test_basic_reading()
 {
-	xstream s("data/short.xml", region(0, 0));
+	stream s("data/short.xml", region(0, 0));
 	ENSURE(s.size() == 27737);
 	ENSURE(s.read_until("<title>", true, NULL, NULL));
 	ENSURE(s.read(5) == "April");
@@ -42,8 +42,8 @@ void test_regionized_reading()
 {
 	std::vector<region> regions(regionize("data/short.xml", 2));
 	ENSURE(regions.size() == 2);
-	xstream s1("data/short.xml", regions.at(0));
-	xstream s2("data/short.xml", regions.at(1));
+	stream s1("data/short.xml", regions.at(0));
+	stream s2("data/short.xml", regions.at(1));
 	
 	ENSURE(s1.tell() == regions.at(0).begin);
 	ENSURE(s1.read_until("<title>", true, NULL, NULL));

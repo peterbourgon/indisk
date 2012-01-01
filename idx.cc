@@ -573,7 +573,7 @@ void parse_text(char *buf, size_t len, void *arg)
 	}
 }
 
-index_result index_article(xstream& s, index_st& idx_st)
+index_result index_article(stream& s, index_st& idx_st)
 {
 	if (!s.read_until("<title>", true, NULL, NULL)) {
 		return END_OF_REGION;

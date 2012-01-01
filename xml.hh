@@ -25,11 +25,11 @@ std::vector<region> regionize(const std::string& filename, size_t count);
 
 typedef void (*rfunc)(char *, size_t, void *);
 
-class xstream
+class stream
 {
 public:
-	xstream(const std::string& filename, const region& r);
-	~xstream();
+	stream(const std::string& filename, const region& r);
+	~stream();
 	
 	bool read_until(const std::string& tok, bool consume, rfunc f, void *arg);
 	

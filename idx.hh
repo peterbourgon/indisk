@@ -102,12 +102,12 @@ public:
 	bool finished() const;
 	size_t article_count() const;
 	
-	const xstream& get_stream() const { return m_s; }
+	const stream& get_stream() const { return m_s; }
 	const index_st& get_index_st() const { return m_idx_st; }
 	
 private:
 	bool m_started;
-	xstream m_s;
+	stream m_s;
 	index_st m_idx_st;
 	size_t m_article_count;
 };
@@ -118,6 +118,6 @@ enum index_result {
 	END_OF_REGION
 };
 
-index_result index_article(xstream& s, index_st& idx_st);
+index_result index_article(stream& s, index_st& idx_st);
 
 #endif
