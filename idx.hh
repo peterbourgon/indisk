@@ -4,6 +4,7 @@
 #include <fstream>
 #include "thread.hh"
 #include "definitions.hh"
+#include "xml.hh"
 
 // The index_st accepts index() calls, and stores those associations
 // to an inverted index, in memory.
@@ -83,5 +84,31 @@ private:
 	std::ofstream *m_ofs_hdr;
 	
 };
+
+class idx_thread : public synchronized_threadbase
+{
+public:
+	idx_thread(
+			const std::string& xml_filename,
+			const region& r,
+			const std::string& idx_filename); // contains .1, .2, etc. already
+	virtual ~idx_thread();
+	virtual void run();
+	
+	const xstream& get_stream() { return m_s; }
+	const index_st& get_index_st() { return m_idx_st; }
+	
+private:
+	xstream m_s;
+	index_st m_idx_st;
+};
+
+enum index_result {
+	INDEX_GOOD,
+	NO_INDEX_BUT_CONTINUE,
+	END_OF_REGION
+};
+
+index_result index_article(xstream& s, index_st& idx_st);
 
 #endif

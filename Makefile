@@ -12,6 +12,7 @@ SRC = \
 
 TST = \
 	test_stream \
+	test_idx \
 
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
