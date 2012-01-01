@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS = -Wall -Werror -pedantic -ggdb
+CFLAGS = -Wall -Werror -pedantic -O3
 
 LIB = -lpthread
 
@@ -17,8 +17,7 @@ TST = \
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
-# all: indexer reader
-all: indexer
+all: indexer reader
 
 test: $(TST)
 

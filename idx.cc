@@ -285,6 +285,7 @@ void idx_thread::run()
 		index_result r(index_article(m_s, m_idx_st));
 		if (r == END_OF_REGION) {
 			m_idx_st.flush(true);
+			sync.lock();
 			break;
 		} else if (r == INDEX_GOOD) {
 			++m_article_count; // TODO atomic
@@ -581,8 +582,11 @@ index_result index_article(xstream& s, index_st& idx_st)
 	if (title.empty()) {
 		return NO_INDEX_BUT_CONTINUE;
 	}
-	if (title.find("Category:") == 0) {
-		// Don't index category pages
+	if (
+			title.find("Category:") == 0 ||
+			title.find("Wikipedia:") == 0 ||
+			title.find("Special:") == 0) {
+		// Don't index special pages
 		return NO_INDEX_BUT_CONTINUE;
 	}
 	assert(title.find(END_DELIM) == std::string::npos);
