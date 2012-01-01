@@ -7,6 +7,7 @@ LIB = -lpthread
 SRC = \
 	definitions.cc \
 	xml.cc \
+	idx.cc \
 	thread.cc \
 
 TST = \
