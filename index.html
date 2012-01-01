@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<style> body { width: 500px; margin: 20px auto; } </style>
+<title>Search</title>
+</head>
+<body>
+
+<h1>Wikipedia search</h1>
+<input id="query" type="text" size=40 />
+
+<div id="results">
+</div>
+
+<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+<script type="text/javascript">
+$(function() {
+	$("#query").focus();
+});
+$('#query').keypress(function(e) {
+	if (e.which == 13) { // enter
+		$.getJSON('/query/' + $(this).val(), function(data) {
+			r  = "<p><strong>" + data["hits"] + "</strong> total hits.</p>";
+			r += "<ol>";
+			for (var hit in data['top']) {
+				r += '<li>';
+				r += '<a href="http://en.wikipedia.org/wiki/' + data['top'][hit]['article'] + '">';
+				r += data['top'][hit]['article'];
+				r += '</a> (' + data['top'][hit]['weight'] + ')';
+				r += '</li>\n';
+			}
+			r += "<ol>";
+			$('#results').html(r);
+		});
+		return false;
+	}
+});
+</script>
+</body>
+</html>
