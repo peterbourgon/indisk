@@ -5,10 +5,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
-#include "xmlparse.hh"
-#include "index_state.hh"
 #include "definitions.hh"
+#include "xml.hh"
+#include "idx.hh"
 
+/*
 static bool index_article(stream& s, index_state& is)
 {
 	if (!s.read_until("<title>", true, NULL, NULL)) {
@@ -162,6 +163,7 @@ split_pairs get_split_positions(const std::string& xml_filename)
 	p.push_back(std::make_pair(last_end, s.size()));
 	return p;
 }
+*/
 
 int main(int argc, char *argv[])
 {
@@ -171,28 +173,29 @@ int main(int argc, char *argv[])
 	}
 	int rc(0);
 	try {
-		split_pairs p(get_split_positions(argv[1]));
-		size_t id(1);
-		std::vector<index_thread *> threads;
-		typedef std::vector<index_thread *>::iterator thit;
-		for (split_pairs::const_iterator it(p.begin()); it != p.end(); ++it) {
-			std::cout << "partition: "
-			          << it->first << '-' << it->second
-			          << std::endl;
+		// compute regions
+		std::vector<region> regions(regionize(argv[1], get_cpus()));
+		// start threads
+		std::vector<idx_thread *> threads;
+		size_t thread_id(1);
+		typedef std::vector<region>::const_iterator rcit;
+		typedef std::vector<idx_thread *>::iterator thit;
+		for (rcit it(regions.begin()); it != regions.end(); ++it) {
+			std::cout << "region: " << it->begin << '-' << it->end << std::endl;
 			std::ostringstream oss;
-			oss << argv[2] << "." << id++;
-			index_thread *t(new index_thread(argv[1], oss.str(), it->first, it->second));
+			oss << argv[2] << "." << thread_id++;
+			idx_thread *t(new idx_thread(argv[1], *it, oss.str()));
 			t->start();
 			threads.push_back(t);
 		}
+		// wait for completion + calculate statistics
 		for (size_t i(1); ; i++) {
 			size_t finished_count(0), articles(0);
 			for (thit it(threads.begin()); it != threads.end(); ++it) {
 				if ((*it)->finished()) {
 					finished_count++;
 				}
-				articles += (*it)->idx_st()->article_count();
-				std::cout << "thread at stream position " << (*it)->streampos() << std::endl;
+				articles += (*it)->article_count();
 			}
 			const size_t aps(articles/i);
 			std::cout << "indexed " << articles << " articles "
@@ -203,6 +206,7 @@ int main(int argc, char *argv[])
 			}
 			sleep(1);
 		}
+		std::cout << "all indexing complete; finalizing" << std::endl;
 		for (thit it(threads.begin()); it != threads.end(); ++it) {
 			(*it)->join();
 			delete *it;

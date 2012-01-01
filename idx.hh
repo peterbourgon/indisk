@@ -24,6 +24,11 @@
 // before we perform a partial_flush().
 #define PARTIAL_FLUSH_LIMIT 256
 
+// How many articles need to be indexed (in memory)
+// before we flush the entire index (including header)
+// to disk and start fresh.
+#define ARTICLE_FLUSH_LIMIT 100000
+
 class index_st : public monitor
 {
 public:
@@ -35,11 +40,11 @@ public:
 	// Flush all collected state to disk, in a new index file.
 	// Should be triggered by whoever calls index(),
 	// after article_count() has reached some threshold.
-	void flush();
+	// last_flush=true won't recreate_output_files().
+	void flush(bool last_flush=false);
 	
 	// Articles in memory, ie. since last flush.
 	size_t article_count() const;
-	
 	
 protected:
 	// Returns the article or term ID for the given string,
@@ -94,13 +99,16 @@ public:
 			const std::string& idx_filename); // contains .1, .2, etc. already
 	virtual ~idx_thread();
 	virtual void run();
+	bool finished() const;
+	size_t article_count() const;
 	
-	const xstream& get_stream() { return m_s; }
-	const index_st& get_index_st() { return m_idx_st; }
+	const xstream& get_stream() const { return m_s; }
+	const index_st& get_index_st() const { return m_idx_st; }
 	
 private:
 	xstream m_s;
 	index_st m_idx_st;
+	size_t m_article_count;
 };
 
 enum index_result {

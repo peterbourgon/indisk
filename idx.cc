@@ -63,7 +63,7 @@ void index_st::index(const std::string& term, const std::string& article)
 	}
 }
 
-void index_st::flush()
+void index_st::flush(bool last_flush)
 {
 	scoped_lock sync(monitor_mutex);
 	assert(m_ofs_idx->good());
@@ -80,7 +80,9 @@ void index_st::flush()
 	merge(idx_filename(), hdr_filename());
 	reset_state();
 	m_flush_count++;
-	recreate_output_files();
+	if (!last_flush) {
+		recreate_output_files();
+	}
 }
 
 size_t index_st::article_count() const
@@ -169,7 +171,7 @@ void index_st::recreate_output_files()
 std::string index_st::idx_filename()
 {
 	std::ostringstream oss;
-	oss << m_basename << '.' << m_flush_count;
+	oss << m_basename << '.' << m_flush_count+1;
 	return oss.str();
 }
 
@@ -263,6 +265,7 @@ idx_thread::idx_thread(
 		const std::string& idx_filename)
 : m_s(xml_filename, r)
 , m_idx_st(idx_filename)
+, m_article_count(0)
 {
 	//
 }
@@ -275,17 +278,35 @@ idx_thread::~idx_thread()
 void idx_thread::run()
 {
 	scoped_lock sync(monitor_mutex);
-	size_t article_count(0);
+	size_t unflushed_article_count(0);
+	synchronized_thread_running = true;
 	while (synchronized_thread_running) {
-		bool ok(index_article(m_s, m_idx_st));
-		if (!ok) {
+		sync.unlock();
+		index_result r(index_article(m_s, m_idx_st));
+		if (r == END_OF_REGION) {
+			m_idx_st.flush(true);
 			break;
+		} else if (r == INDEX_GOOD) {
+			++m_article_count; // TODO atomic
+			if (++unflushed_article_count >= ARTICLE_FLUSH_LIMIT) {
+				m_idx_st.flush();
+				unflushed_article_count = 0;
+			}
 		}
-		if (++article_count >= MAX_ARTICLE_COUNT) {
-			m_idx_st.flush();
-		}
+		sync.lock();
 	}
 	synchronized_thread_running = false;
+}
+
+bool idx_thread::finished() const
+{
+	scoped_lock sync(monitor_mutex);
+	return !synchronized_thread_running;
+}
+
+size_t idx_thread::article_count() const
+{
+	return m_article_count;
 }
 
 //
