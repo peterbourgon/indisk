@@ -2,17 +2,7 @@
 #include <stdexcept>
 #include <sstream>
 #include "xml.hh"
-
-void ensure(bool condition, const std::string& file, int line)
-{
-	if (!condition) {
-		std::ostringstream oss;
-		oss << "ensure failed at " << file << ":" << line;
-		throw std::runtime_error(oss.str());
-	}
-}
-
-#define ENSURE(x) ensure(x, __FILE__, __LINE__)
+#include "ensure.hh"
 
 void test_basic_reading()
 {

@@ -18,16 +18,11 @@
 // above some threshold, it should call flush(), which will
 //  - write out all partial index metadata to a header file
 //  - merge the header and index files to a single file
-//  - reset the internal state
+//  - reset the internal state (ie. so that article_count() returns 0)
 
 // How many articles need to be linked to a term
 // before we perform a partial_flush().
 #define PARTIAL_FLUSH_LIMIT 256
-
-// How many articles need to be indexed (in memory)
-// before we flush the entire index (including header)
-// to disk and start fresh.
-#define ARTICLE_FLUSH_LIMIT 100000
 
 class index_st : public monitor
 {
@@ -46,6 +41,10 @@ public:
 	// Articles in memory, ie. since last flush.
 	size_t article_count() const;
 	
+	// Introspection methods for tests.
+	bool has_article(const std::string& article);
+	bool is_associated(const std::string& article, const std::string& term);
+	
 protected:
 	// Returns the article or term ID for the given string,
 	// or generates a new one if it doesn't yet exist.
@@ -60,15 +59,22 @@ protected:
 	// into the tid_offsets_map, for use in the header.
 	void register_tid_offset(uint32_t tid, uint32_t offset);
 	
-	//
+	// Deletes the two member ofstream pointers,
+	// and recreates them using idx_ and hdr_filename().
+	// The streams should be close()d prior to calling this.
 	void recreate_output_files();
+	
+	// Return the appropriate (partial) index and header filenames
+	// based on basename and m_flush_count.
 	std::string idx_filename();
 	std::string hdr_filename();
 	
-	//
+	// Writes the current state of the index to the header file
+	// as returned by hdr_filename. 
 	void write_header();
 	
-	// 
+	// Resets all per-index-file state in the class instance to 0.
+	// Typically called as part of flush().
 	void reset_state();
 	
 private:
@@ -90,13 +96,18 @@ private:
 	
 };
 
+// How many articles need to be indexed (in memory)
+// before we flush the entire index (including header)
+// to disk and start fresh.
+#define ARTICLE_FLUSH_LIMIT 100000
+
 class idx_thread : public synchronized_threadbase
 {
 public:
 	idx_thread(
 			const std::string& xml_filename,
 			const region& r,
-			const std::string& idx_filename); // contains .1, .2, etc. already
+			const std::string& idx_filename); // should already be per-thread
 	virtual ~idx_thread();
 	virtual void run();
 	bool finished() const;

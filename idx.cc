@@ -92,6 +92,37 @@ size_t index_st::article_count() const
 	return m_articles.size();
 }
 
+bool index_st::has_article(const std::string& article)
+{
+	scoped_lock sync(monitor_mutex);
+	return m_articles.find(article) != m_articles.end();
+}
+
+bool index_st::is_associated(const std::string& article, const std::string& term)
+{
+	scoped_lock sync(monitor_mutex);
+	str_id_map::iterator atgt(m_articles.find(article));
+	if (atgt == m_articles.end()) {
+		return false;
+	}
+	str_id_map::iterator ttgt(m_terms.find(term));
+	if (ttgt == m_terms.end()) {
+		return false;
+	}
+	const uint32_t tid(ttgt->second), aid(atgt->second);
+	tid_aids_map::iterator tgt(m_inverted_index.find(tid));
+	if (tgt == m_inverted_index.end()) {
+		return false;
+	}
+	typedef id_vector::const_iterator idvcit;
+	for (idvcit it(tgt->second.begin()); it != tgt->second.end(); ++it) {
+		if (*it == aid) {
+			return true;
+		}
+	}
+	return false;
+}
+
 static uint32_t generic_id(const std::string& s, str_id_map& m, uint32_t& id)
 {
 	str_id_map::const_iterator it(m.find(s));
@@ -385,6 +416,7 @@ void parse_contrib(char *buf, size_t len, void *arg)
 		buf_read_until(buf, i, len, USERNAME_END);
 		if (i < len) {
 			*s = std::string(buf+from, i-from-USERNAME_END_SZ);
+			std::transform(s->begin(), s->end(), s->begin(), tolower);
 		}
 	}
 }

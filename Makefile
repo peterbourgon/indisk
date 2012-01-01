@@ -36,6 +36,9 @@ reader: $(OBJ) reader.cc
 debug_indexer:
 	g++ -ggdb -o indexer def.cc xml.cc idx.cc thread.cc indexer.cc
 
+debug_test_idx:
+	g++ -ggdb -o test_idx def.cc xml.cc idx.cc thread.cc test_idx.cc
+
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
 	rm -rfv indexer reader $(TST) $(DSYM) $(OBJ)
