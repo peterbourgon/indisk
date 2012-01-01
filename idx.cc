@@ -1,6 +1,7 @@
 #include <cassert>
 #include <sstream>
 #include <stdexcept>
+#include <cstring>
 #include "idx.hh"
 
 template<typename T>

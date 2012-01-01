@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <cassert>
+#include <cstdlib>
 #include "xml.hh"
 
 #define MAX_REGIONS 64
