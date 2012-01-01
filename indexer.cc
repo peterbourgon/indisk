@@ -21,6 +21,10 @@ static bool index_article(stream& s, index_state& is)
 	if (title.empty()) {
 		return false;
 	}
+	if (title.find("Category:") == 0) {
+		// Don't index category pages
+		return true;
+	}
 	assert(title.find(END_DELIM) == std::string::npos);
 	//std::cout << "parsed title: " << title << std::endl;
 	if (!s.read_until("<contributor>", true, NULL, NULL)) {
@@ -99,6 +103,13 @@ public:
 		return m_finished;
 	}
 	
+	index_state *idx_st()
+	{
+		return m_is;
+	}
+	
+	uint64_t streampos() { return m_stream.tell(); }
+	
 private:
 	stream m_stream;
 	index_state *m_is;
@@ -175,12 +186,18 @@ int main(int argc, char *argv[])
 			threads.push_back(t);
 		}
 		for (size_t i(1); ; i++) {
-			size_t finished_count(0);
+			size_t finished_count(0), articles(0);
 			for (thit it(threads.begin()); it != threads.end(); ++it) {
 				if ((*it)->finished()) {
 					finished_count++;
 				}
+				articles += (*it)->idx_st()->article_count();
+				std::cout << "thread at stream position " << (*it)->streampos() << std::endl;
 			}
+			const size_t aps(articles/i);
+			std::cout << "indexed " << articles << " articles "
+			          << "(~" << aps << "/s)"
+			          << std::endl;
 			if (finished_count >= threads.size()) {
 				break;
 			}
