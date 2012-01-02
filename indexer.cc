@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
 	}
 	int rc(0);
 	try {
-		assert(false);
 		// compute regions
 		std::vector<region> regions(regionize(argv[1], get_cpus()));
 		// start threads
