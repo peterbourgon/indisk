@@ -56,7 +56,8 @@ Pro with a 5400RPM spinning disk, I can index approximately 1200 articles per
 second (APS) peak, 600 APS sustained. On my 2011 MacBook Air with a SSD, I can
 index approximately 3000 APS peak, 1500 APS sustained. That translates to about
 20GB per hour; not as good as [Mike McCandless' highly-optimized Lucene][1] at
-96GB per hour, but not completely out of the ballpark.
+96GB per hour, but not completely out of the ballpark. Interestingly, he
+reports that his resulting index is 6.9GB in memory; about the same as mine.
 
  [1]: http://blog.mikemccandless.com/2010/09/lucenes-indexing-is-fast.html
 
