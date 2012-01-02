@@ -7,9 +7,7 @@ static PyObject * py_init(PyObject *self, PyObject *args)
 {
 	PyObject *list;
 	if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &list)) {
-		return NULL;
-	}
-	if (!PyList_Check(list)) {
+		PyErr_SetString(PyExc_RuntimeError, "error parsing list");
 		return NULL;
 	}
 	size_t len(PyList_Size(list));
@@ -33,6 +31,7 @@ static PyObject * py_search(PyObject *self, PyObject *args)
 {
 	char *term;
 	if (!PyArg_ParseTuple(args, "s", &term)) {
+		PyErr_SetString(PyExc_RuntimeError, "error parsing string");
 		return NULL;
 	}
 	search_results r(search_indices(term));
