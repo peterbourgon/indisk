@@ -21,14 +21,12 @@ TST = \
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
+PYTHON_MODULE = indisk.so
+LFLAGS = -Wall -Werror -O3 # no -pedantic; Python.h fails
 ifeq ($(shell uname), Darwin)
-LFLAGS = -Wall -Werror -O3 -dynamiclib
-PYTHON_MODULE = indisk.dylib
-FINAL_PYTHON_MODULE = $(PYTHON_MODULE:.dylib=.so)
+LFLAGS += -dynamiclib
 else # Linux
-LFLAGS = -Wall -Werror -O3 -shared
-PYTHON_MODULE = indisk.pre
-FINAL_PYTHON_MODULE = $(PYTHON_MODULE:.pre=.so)
+LFLAGS += -shared
 endif
 
 all: indexer reader $(PYTHON_MODULE) $(TST)
@@ -48,9 +46,7 @@ reader: $(OBJ) reader.cc
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
 $(PYTHON_MODULE): $(OBJ) $(MOD)
-	# unfortunately can't be -pedantic, because Python.h is not strictly valid
 	$(CC) $(LFLAGS) -lpython2.7 -o $@ $^
-	mv $(PYTHON_MODULE) $(FINAL_PYTHON_MODULE)
 
 debug_indexer:
 	g++ -ggdb -o indexer def.cc xml.cc idx.cc thread.cc indexer.cc
@@ -62,5 +58,5 @@ DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
 	rm -rf indexer reader 
 	rm -rf $(TST) $(DSYM) $(OBJ) 
-	rm -rf $(FINAL_PYTHON_MODULE)
+	rm -rf $(PYTHON_MODULE)
 
