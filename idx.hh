@@ -29,8 +29,8 @@ class index_st : public monitor
 public:
 	index_st(const std::string& basename);
 	
-	// Associate term to article in the inverted index.
-	void index(const std::string& term, const std::string& article);
+	// Associate terms to article in the inverted index.
+	void index(const std::vector<std::string>& terms, const std::string& article);
 	
 	// Flush all collected state to disk, in a new index file.
 	// Should be triggered by whoever calls index(),
@@ -46,6 +46,9 @@ public:
 	bool is_associated(const std::string& article, const std::string& term);
 	
 protected:
+	// Associate term to article in the inverted index.
+	void index(const std::string& term, const std::string& article);
+	
 	// Returns the article or term ID for the given string,
 	// or generates a new one if it doesn't yet exist.
 	uint32_t article_id(const std::string& article);

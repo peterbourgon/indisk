@@ -44,23 +44,12 @@ index_st::index_st(const std::string& basename)
 	assert(m_ofs_hdr->good());
 }
 
-void index_st::index(const std::string& term, const std::string& article)
+void index_st::index(const std::vector<std::string>& terms, const std::string& article)
 {
-	// TODO optimize for one lock = one article + all terms
 	scoped_lock sync(monitor_mutex);
-	assert(!term.empty() && !article.empty());
-	const uint32_t tid(term_id(term)), aid(article_id(article));
-	tid_aids_map::iterator tgt(m_inverted_index.find(tid));
-	if (tgt != m_inverted_index.end()) {
-		tgt->second.push_back(aid);
-		if (tgt->second.size() >= PARTIAL_FLUSH_LIMIT) {
-			partial_flush(tgt->first, tgt->second);
-		}
-	} else {
-		id_vector v;
-		v.reserve(PARTIAL_FLUSH_LIMIT);
-		v.push_back(aid);
-		m_inverted_index.insert(std::make_pair(tid, v));
+	typedef std::vector<std::string>::const_iterator svcit;
+	for (svcit it(terms.begin()); it != terms.end(); ++it) {
+		index(*it, article);
 	}
 }
 
@@ -179,6 +168,24 @@ void index_st::register_tid_offset(uint32_t tid, uint32_t offset)
 		offset_vector v;
 		v.push_back(offset);
 		m_tid_offsets.insert(std::make_pair(tid, v));
+	}
+}
+
+void index_st::index(const std::string& term, const std::string& article)
+{
+	assert(!term.empty() && !article.empty());
+	const uint32_t tid(term_id(term)), aid(article_id(article));
+	tid_aids_map::iterator tgt(m_inverted_index.find(tid));
+	if (tgt != m_inverted_index.end()) {
+		tgt->second.push_back(aid);
+		if (tgt->second.size() >= PARTIAL_FLUSH_LIMIT) {
+			partial_flush(tgt->first, tgt->second);
+		}
+	} else {
+		id_vector v;
+		v.reserve(PARTIAL_FLUSH_LIMIT);
+		v.push_back(aid);
+		m_inverted_index.insert(std::make_pair(tid, v));
 	}
 }
 
@@ -547,8 +554,9 @@ void parse_text(char *buf, size_t len, void *arg)
 	if (len > MAX_TEXT_SIZE) {
 		throw std::runtime_error("parse_text buffer too big");
 	}
+	std::vector<std::string> terms;
 	if (!ctx->contrib.empty()) {
-		ctx->idx_st.index(ctx->contrib, ctx->article);
+		terms.push_back(ctx->contrib);
 	}
 	std::string term;
 	term.reserve(TERM_RESERVE);
@@ -597,12 +605,13 @@ void parse_text(char *buf, size_t len, void *arg)
 		}
 		if (term_complete) {
 			if (term_passes(term)) {
-				ctx->idx_st.index(term, ctx->article);
+				terms.push_back(term);
 			}
 			term.clear();
 			term_complete = false;
 		}
 	}
+	ctx->idx_st.index(terms, ctx->article);
 }
 
 index_result index_article(stream& s, index_st& idx_st)
