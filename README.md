@@ -7,6 +7,11 @@ indisk
 Usage
 -----
 
+The software was tested on Mac OS 10.7 (Lion) and Debian Linux 6 (Squeeze). It
+requires gcc (g++) 4.2 or higher, make, python2.7, and probably a few other
+things I'm forgetting. You should be able to just type "make" and everything
+will compile; if not, file an issue.
+
 The **indexer** takes an input XML file and an output basename. It will create
 one or more index files using the basename as a common prefix.
 
@@ -48,7 +53,7 @@ index approximately 3000 APS peak, 1500 APS sustained.
 The complete enwiki.xml contains approximately 12 million "articles" by our
 definition (ie. title tags), so with a SSD, the full index takes me
 approximately 2 hours. For a proof of concept, more immediate results may be
-obtained by using the [Simple Wiki] [1] text dump, which is two orders of
+obtained by using the [Simple Wiki][1] text dump, which is two orders of
 magnitude smaller (approximately 140000 articles) and can be indexed on the
 same hardware in under a minute.
 
@@ -68,14 +73,14 @@ constraints you don't normally see in real-life systems:
 
 Search backends that are expected to, for example, handle a stream of incoming
 or changing data, are necessarily structured differently to deal with that
-requirement.  Solving problems of consistency and responsiveness in a
+requirement. Solving problems of consistency and responsiveness in a
 maintainable way -- most likely in a large, distributed system -- is a very
 different (and harder) problem than simply efficiently searching 35GB of text
 with 4GB of RAM.
 
 Searching means building an inverted index, from content to container. I first
-thought that a tailor-made data structure like a [PATRICIA Trie] [1] would be
-sufficient, but [my first-pass implementation] [2] wasn't nearly
+thought that a tailor-made data structure like a [PATRICIA Trie][1] would be
+sufficient, but [my first-pass implementation][2] wasn't nearly
 memory-efficient enough.
 
   [1]: http://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/trie_based_containers.html
