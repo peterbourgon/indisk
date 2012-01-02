@@ -21,10 +21,15 @@ TST = \
 HDR = $(SRC:.cc=.hh)
 OBJ = $(SRC:.cc=.o)
 
-# TODO conditional for Linux
+ifeq ($(shell uname), Darwin)
 LFLAGS = -Wall -Werror -O3 -dynamiclib
 PYTHON_MODULE = indisk.dylib
 FINAL_PYTHON_MODULE = $(PYTHON_MODULE:.dylib=.so)
+else # Linux
+LFLAGS = -Wall -Werror -O3 -sharedlib
+PYTHON_MODULE = indisk.so
+FINAL_PYTHON_MODULE = $(PYTHON_MODULE)
+endif
 
 all: indexer reader $(PYTHON_MODULE) $(TST)
 
