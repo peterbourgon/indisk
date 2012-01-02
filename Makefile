@@ -8,10 +8,11 @@ SRC = \
 	def.cc \
 	xml.cc \
 	idx.cc \
+	search.cc \
 	thread.cc \
 
 MOD = \
-	readermodule.cc \
+	pymodule.cc \
 
 TST = \
 	test_stream \
@@ -22,7 +23,7 @@ OBJ = $(SRC:.cc=.o)
 
 # TODO conditional for Linux
 LFLAGS = -Wall -Werror -O3 -dynamiclib
-PYTHON_MODULE = $(MOD:.cc=.dylib)
+PYTHON_MODULE = indisk.dylib
 FINAL_PYTHON_MODULE = $(PYTHON_MODULE:.dylib=.so)
 
 all: indexer reader $(PYTHON_MODULE) $(TST)
@@ -41,9 +42,9 @@ indexer: $(OBJ) indexer.cc
 reader: $(OBJ) reader.cc
 	$(CC) $(CFLAGS) $(LIB) -o $@ $^
 
-$(PYTHON_MODULE): $(MOD)
+$(PYTHON_MODULE): $(OBJ) $(MOD)
 	# unfortunately can't be -pedantic, because Python.h is not strictly valid
-	$(CC) $(LFLAGS) -I/usr/include/python2.7 -lpython2.7 -o $@ $<
+	$(CC) $(LFLAGS) -lpython2.7 -o $@ $^
 	mv $(PYTHON_MODULE) $(FINAL_PYTHON_MODULE)
 
 debug_indexer:
@@ -54,5 +55,7 @@ debug_test_idx:
 
 DSYM = $(addsuffix .dSYM, $(TST) indexer reader)
 clean:
-	rm -rfv indexer reader $(TST) $(DSYM) $(OBJ) $(FINAL_PYTHON_MODULE)
+	rm -rf indexer reader 
+	rm -rf $(TST) $(DSYM) $(OBJ) 
+	rm -rf $(FINAL_PYTHON_MODULE)
 

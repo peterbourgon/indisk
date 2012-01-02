@@ -620,6 +620,7 @@ index_result index_article(stream& s, index_st& idx_st)
 	if (
 			title.find("Category:") == 0 ||
 			title.find("Wikipedia:") == 0 ||
+			title.find("Template:") == 0 ||
 			title.find("Special:") == 0) {
 		// Don't index special pages
 		return NO_INDEX_BUT_CONTINUE;
