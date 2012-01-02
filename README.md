@@ -1,5 +1,8 @@
-indisk — Wikipedia dump indexer
-===============================
+indisk
+======
+
+**indisk** is a arbitrary name for a Wikipedia dump indexer.
+
 
 Usage
 -----
