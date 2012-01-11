@@ -43,10 +43,19 @@ boolean operations.
 Limits
 ------
 
-* The number of returned results is #defined to 10, but it's trivially
+1. The number of returned results is #defined to 10, but it's trivially
 changeable. Pagination of the complete result set is relatively
 straightforward.
 
+2. The maximum number of terms in an index set is constrainted to UINT32 MAX,
+or about 4.2 billion. Actually, less, as a function of the number of articles
+allowed in a single index file.
+
+3. An input file may be split into a maximum of 64 regions. In the current
+implementation, this means the maximum number of index threads is also 64.
+
+4. The maximum size for the title, contributor, and article text regions are
+1KB, 1MB and 100MB respectively.
 
 Performance
 -----------
