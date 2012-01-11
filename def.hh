@@ -1,5 +1,5 @@
-#ifndef DEFINITIONS_HH_
-#define DEFINITIONS_HH_
+#ifndef DEF_HH_
+#define DEF_HH_
 
 #include <string>
 #include <vector>
