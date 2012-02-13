@@ -1,0 +1,5 @@
+*.o
+indexer
+reader
+*.so
+test_*
