@@ -73,11 +73,11 @@ reports that his resulting index is 6.9GB in memory; about the same as mine.
 The complete enwiki.xml contains approximately 12 million "articles" by our
 definition (ie. title tags), so with a SSD, the full index takes me
 approximately 2 hours. For a proof of concept, more immediate results may be
-obtained by using the [Simple Wiki][1] text dump, which is two orders of
+obtained by using the [Simple Wiki][2] text dump, which is two orders of
 magnitude smaller (approximately 140000 articles) and can be indexed on the
 same hardware in under a minute.
 
- [1]: http://dumps.wikimedia.org/simplewiki/latest/simplewiki-latest-pages-articles.xml.bz2
+ [2]: http://dumps.wikimedia.org/simplewiki/latest/simplewiki-latest-pages-articles.xml.bz2
 
 Searching performance is Pretty Good™; on my MacBook Air with 4GB of RAM, the
 Simple Wiki dump returns results in less than 10ms, and the complete English
@@ -104,12 +104,12 @@ different (and harder) problem than simply efficiently searching 35GB of text
 with 4GB of RAM.
 
 Searching means building an inverted index, from content to container. I first
-thought that a tailor-made data structure like a [PATRICIA Trie][1] would be
-sufficient, but [my first-pass implementation][2] wasn't nearly
+thought that a tailor-made data structure like a [PATRICIA Trie][3] would be
+sufficient, but [my first-pass implementation][4] wasn't nearly
 memory-efficient enough.
 
- [1]: http://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/trie_based_containers.html
- [2]: http://github.com/peterbourgon/patrie
+ [3]: http://gcc.gnu.org/onlinedocs/libstdc++/ext/pb_ds/trie_based_containers.html
+ [4]: http://github.com/peterbourgon/patrie
 
 So I went back to the drawing board and came up with a simple encoding scheme.
 A few iterations, accounting for problems with large amounts of data in not
