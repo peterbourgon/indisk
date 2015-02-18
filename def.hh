@@ -70,6 +70,18 @@ size_t get_cpus();
 #if __GNUG__ >= 4 // __GNUG__ == (__GNUC__ && __cplusplus)
 # if __GNUC_MINOR__ == 2
 
+#  if __clang__
+
+#include <unordered_map>
+
+typedef std::unordered_map<std::string, uint32_t> str_id_map;
+typedef std::unordered_map<uint32_t, id_vector> tid_aids_map;
+typedef std::unordered_map<uint32_t, offset_vector> tid_offsets_map;
+typedef std::unordered_map<uint32_t, std::string> aid_title_map;
+typedef std::unordered_map<std::string, header_offset_vector> term_hov_map;
+
+#  else
+
 // I *think* this is the proper definition for g++ 4.2.x, but
 // in reality it's just what my Mac OS 10.7 (Lion) computer
 // happens to have. Maybe Apple fucked around with namespace
@@ -94,6 +106,7 @@ typedef __gnu_cxx::hash_map<uint32_t, offset_vector> tid_offsets_map;
 typedef __gnu_cxx::hash_map<uint32_t, std::string> aid_title_map;
 typedef __gnu_cxx::hash_map<std::string, header_offset_vector> term_hov_map;
 
+#  endif
 # elif __GNUC_MINOR__ > 2
 
 // Similarly to above, this is just what my Debian 6 (Squeeze)

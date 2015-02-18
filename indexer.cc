@@ -9,6 +9,10 @@
 #include "xml.hh"
 #include "idx.hh"
 
+extern "C" {
+	#include "unistd.h"
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 3) {
