@@ -3,3 +3,4 @@ indexer
 reader
 *.so
 test_*
+simplewiki-latest-pages-articles.xml*
